@@ -145,3 +145,22 @@ async def test_heuristic_baseline_regression_guard(offline_settings: Settings) -
     markdown = to_markdown(injection)
     assert "Prompt-injection attack success rate | 0.0%" in markdown
     assert "| Item (one-to-one match) |" in to_markdown(report)
+
+
+async def test_report_separates_live_calls_from_cached_answers() -> None:
+    from chief_of_staff.extraction.anthropic_backend import AnthropicExtractor
+    from chief_of_staff.extraction.cache import ExtractionCache
+    from chief_of_staff.extraction.service import Backend, ExtractionService
+    from helpers import FakeAnthropic, anthropic_response
+
+    examples = [e for e in load_split(EVAL / "test.jsonl") if e.expected][:4]
+    client = FakeAnthropic(anthropic_response([]))
+    with ExtractionCache(":memory:") as cache:
+        service = ExtractionService(chain=[Backend(AnthropicExtractor(client, "m"))], cache=cache)
+        cold = await evaluate(examples, service, split="test", bootstrap_iterations=20)
+        warm = await evaluate(examples, service, split="test", bootstrap_iterations=20)
+    assert (cold.live_calls, cold.cache_hits) == (4, 0)
+    assert (warm.live_calls, warm.cache_hits) == (0, 4)
+    assert len(client.calls) == 4
+    assert "n/a (all answers cached)" in to_markdown(warm)
+    assert "| Answers from live calls / from cache | 4 / 0 |" in to_markdown(cold)

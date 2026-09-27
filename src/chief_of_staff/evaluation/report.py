@@ -18,6 +18,11 @@ def _row(name: str, prf: PRF) -> str:
 
 
 def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
+    latency = (
+        f"{report.latency_ms_p50:.1f} / {report.latency_ms_p95:.1f} ms"
+        if report.live_calls
+        else "n/a (all answers cached)"
+    )
     lines = [
         f"## Evaluation: `{report.split}` split, backend `{report.backend}`",
         "",
@@ -40,7 +45,8 @@ def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
         f"| Prefilter skip rate | {_pct(report.prefilter_skip_rate)} |",
         f"| Gold items lost to prefilter | {report.prefilter_false_negatives} |",
         f"| Extraction failures | {report.failures} |",
-        f"| Latency p50 / p95 | {report.latency_ms_p50:.1f} / {report.latency_ms_p95:.1f} ms |",
+        f"| Answers from live calls / from cache | {report.live_calls} / {report.cache_hits} |",
+        f"| Latency p50 / p95, live calls only | {latency} |",
         f"| Tokens in / out | {report.input_tokens:,} / {report.output_tokens:,} |",
         f"| Cost | {'n/a' if report.cost_usd is None else f'${report.cost_usd:.4f}'} |",
     ]

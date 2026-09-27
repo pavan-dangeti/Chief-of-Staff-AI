@@ -9,6 +9,7 @@ from email.utils import getaddresses, parseaddr, parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
+from chief_of_staff.errors import require_extra
 from chief_of_staff.ingest.email_text import clean_email_body
 from chief_of_staff.models import Message, Source
 
@@ -77,24 +78,26 @@ def parse_gmail_message(message: dict[str, Any], roles: dict[str, str] | None = 
 
 
 def gmail_service(credentials_path: Path, token_path: Path) -> Any:
-    from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials
-    from google_auth_oauthlib.flow import InstalledAppFlow
-    from googleapiclient.discovery import build
+    transport = require_extra("google.auth.transport.requests", "gmail")
+    credentials = require_extra("google.oauth2.credentials", "gmail")
+    oauth_flow = require_extra("google_auth_oauthlib.flow", "gmail")
+    discovery = require_extra("googleapiclient.discovery", "gmail")
 
     creds = (
-        Credentials.from_authorized_user_file(str(token_path), SCOPES)
+        credentials.Credentials.from_authorized_user_file(str(token_path), SCOPES)
         if token_path.exists()
         else None
     )
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            creds.refresh(transport.Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(str(credentials_path), SCOPES)
+            flow = oauth_flow.InstalledAppFlow.from_client_secrets_file(
+                str(credentials_path), SCOPES
+            )
             creds = flow.run_local_server(port=0)
         token_path.write_text(creds.to_json())
-    return build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return discovery.build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
 def fetch_messages(

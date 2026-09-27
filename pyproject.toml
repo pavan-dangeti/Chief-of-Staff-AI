@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chief-of-staff-ai"
-version = "2.0.1"
+version = "2.0.2"
 description = "Grounded, evaluated LLM pipeline that turns Slack and email into a prioritized, deduplicated commitment ledger."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -97,11 +97,3 @@ python_version = "3.11"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
-
-[[tool.mypy.overrides]]
-module = ["googleapiclient.*", "google_auth_oauthlib.*", "google.oauth2.*", "google.auth.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = ["chief_of_staff.ingest.gmail"]
-disallow_untyped_calls = false

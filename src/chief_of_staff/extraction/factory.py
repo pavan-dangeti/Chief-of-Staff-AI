@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from chief_of_staff.config import Settings
+from chief_of_staff.errors import ConfigurationError
 from chief_of_staff.extraction.anthropic_backend import AnthropicExtractor, create_anthropic_client
 from chief_of_staff.extraction.cache import ExtractionCache
 from chief_of_staff.extraction.gemini_backend import GeminiExtractor, create_gemini_client
@@ -15,10 +16,6 @@ from chief_of_staff.extraction.service import Backend, ExtractionService
 from chief_of_staff.prioritization import Prioritizer, PriorityPolicy
 from chief_of_staff.redaction import NoopRedactor, Redactor
 from chief_of_staff.tracing import Tracer
-
-
-class ConfigurationError(RuntimeError):
-    pass
 
 
 def _remote(extractor: Any, rpm: float, settings: Settings) -> Backend:
@@ -36,7 +33,9 @@ def build_service(
     anthropic_client: Any = None,
     gemini_client: Any = None,
     tracer: Tracer | None = None,
+    fallback: bool = True,
 ) -> ExtractionService:
+    """Build the backend chain; ``fallback=False`` pins it to the primary backend alone."""
     primary = settings.resolved_backend()
     anthropic_key = (
         settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None
@@ -70,15 +69,15 @@ def build_service(
         chain.append(anthropic_backend(settings.anthropic_model))
         if settings.anthropic_escalation_model:
             escalation = anthropic_backend(settings.anthropic_escalation_model)
-        if has_gemini:
+        if has_gemini and fallback:
             chain.append(gemini_backend(settings.gemini_model))
     elif primary == "gemini":
         chain.append(gemini_backend(settings.gemini_model))
         if settings.gemini_escalation_model:
             escalation = gemini_backend(settings.gemini_escalation_model)
-        if has_anthropic:
+        if has_anthropic and fallback:
             chain.append(anthropic_backend(settings.anthropic_model))
-    if primary == "heuristic" or settings.fallback_to_heuristic:
+    if primary == "heuristic" or (settings.fallback_to_heuristic and fallback):
         chain.append(Backend(extractor=HeuristicExtractor(), cacheable=False, remote=False))
 
     needs_cache = settings.cache_enabled and any(backend.remote for backend in chain)

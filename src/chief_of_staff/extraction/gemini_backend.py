@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from chief_of_staff.errors import require_extra
 from chief_of_staff.extraction.base import LLMExtractor
 from chief_of_staff.extraction.prompt import SYSTEM_PROMPT, WIRE_SCHEMA
 from chief_of_staff.models import Usage
@@ -18,14 +19,14 @@ class GeminiExtractor(LLMExtractor):
         self._temperature = temperature
 
     async def _generate(self, prompt: str, repair_note: str | None) -> tuple[Any, Usage]:
-        from google.genai import types
-
+        types = require_extra("google.genai.types", "gemini")
         contents = prompt if repair_note is None else f"{prompt}\n\n{repair_note}"
         config = types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
             temperature=self._temperature,
             response_mime_type="application/json",
             response_json_schema=WIRE_SCHEMA,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
         response = await self._client.aio.models.generate_content(
             model=self.model, contents=contents, config=config
@@ -39,9 +40,8 @@ class GeminiExtractor(LLMExtractor):
 
 
 def create_gemini_client(api_key: str, timeout_s: float) -> Any:
-    from google import genai
-    from google.genai import types
-
+    genai = require_extra("google.genai", "gemini")
+    types = require_extra("google.genai.types", "gemini")
     return genai.Client(
         api_key=api_key, http_options=types.HttpOptions(timeout=int(timeout_s * 1000))
     )

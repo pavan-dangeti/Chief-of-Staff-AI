@@ -94,6 +94,7 @@ async def test_gemini_requests_json_schema_output() -> None:
     assert config.response_mime_type == "application/json"
     assert config.response_json_schema == WIRE_SCHEMA
     assert config.system_instruction == SYSTEM_PROMPT
+    assert config.automatic_function_calling.disable is True
     assert (raw.backend, raw.items[0].owner, raw.usage.input_tokens) == ("gemini", "Ravi", 90)
 
 

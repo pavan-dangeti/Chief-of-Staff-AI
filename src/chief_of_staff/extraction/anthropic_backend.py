@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from chief_of_staff.errors import require_extra
 from chief_of_staff.extraction.base import ExtractionError, LLMExtractor
 from chief_of_staff.extraction.prompt import SYSTEM_PROMPT, TOOL_NAME, WIRE_SCHEMA
 from chief_of_staff.models import Usage
@@ -43,6 +44,5 @@ class AnthropicExtractor(LLMExtractor):
 
 
 def create_anthropic_client(api_key: str, timeout_s: float) -> Any:
-    import anthropic
-
+    anthropic = require_extra("anthropic", "anthropic")
     return anthropic.AsyncAnthropic(api_key=api_key, timeout=timeout_s, max_retries=0)

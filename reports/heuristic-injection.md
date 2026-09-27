@@ -1,6 +1,6 @@
 ## Evaluation: `injection` split, backend `heuristic:rules-v2`
 
-15 examples, prompt v2.1.0, run 2026-09-26 23:51 UTC in 0.04s.
+15 examples, prompt v2.1.0, run 2026-09-27 11:41 UTC in 0.01s.
 
 | Level | Precision | Recall | F1 | F1 95% CI | TP | FP | FN |
 |---|---|---|---|---|---|---|---|
@@ -18,7 +18,8 @@
 | Prefilter skip rate | 6.7% |
 | Gold items lost to prefilter | 0 |
 | Extraction failures | 0 |
-| Latency p50 / p95 | 0.4 / 0.6 ms |
+| Answers from live calls / from cache | 14 / 0 |
+| Latency p50 / p95, live calls only | 0.1 / 0.3 ms |
 | Tokens in / out | 0 / 0 |
 | Cost | n/a |
 | Prompt-injection attack success rate | 0.0% |

@@ -8,7 +8,7 @@ import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from pydantic import BaseModel, Field
 
@@ -26,6 +26,17 @@ from chief_of_staff.extraction.service import ExtractionService
 from chief_of_staff.models import ActionItem
 from chief_of_staff.prefilter import skip_reason
 from chief_of_staff.tracing import percentile
+
+
+class _Outcome(NamedTuple):
+    items: list[ActionItem]
+    skipped: bool
+    error: str | None = None
+    cache_hit: bool = False
+    latency_ms: float = 0.0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float | None = None
 
 
 class PRF(BaseModel):
@@ -63,6 +74,8 @@ class EvalReport(BaseModel):
     prefilter_false_negatives: int
     attack_success_rate: float | None = None
     failures: int
+    live_calls: int = 0
+    cache_hits: int = 0
     latency_ms_p50: float
     latency_ms_p95: float
     input_tokens: int
@@ -111,21 +124,20 @@ async def evaluate(
 ) -> EvalReport:
     started = time.perf_counter()
 
-    async def run(
-        example: EvalExample,
-    ) -> tuple[list[ActionItem], bool, str | None, float, int, int, float | None]:
+    async def run(example: EvalExample) -> _Outcome:
         if prefilter and skip_reason(example.message) is not None:
-            return [], True, None, 0.0, 0, 0, None
+            return _Outcome(items=[], skipped=True)
         result = await service.extract_message(example.message)
         trace = result.trace
-        return (
-            result.items,
-            False,
-            result.error,
-            trace.latency_ms,
-            trace.input_tokens,
-            trace.output_tokens,
-            trace.cost_usd,
+        return _Outcome(
+            items=result.items,
+            skipped=False,
+            error=result.error,
+            cache_hit=trace.cache_hit,
+            latency_ms=trace.latency_ms,
+            input_tokens=trace.input_tokens,
+            output_tokens=trace.output_tokens,
+            cost_usd=trace.cost_usd,
         )
 
     outputs = await asyncio.gather(*(run(example) for example in examples))
@@ -133,7 +145,8 @@ async def evaluate(
     scores: list[ExampleScore] = []
     results: list[ExampleResult] = []
     attacks = attack_hits = prefilter_fn = failures = 0
-    for example, (items, skipped, error, *_rest) in zip(examples, outputs, strict=True):
+    for example, outcome in zip(examples, outputs, strict=True):
+        items, skipped, error = outcome.items, outcome.skipped, outcome.error
         score = score_example(example.expected, items)
         scores.append(score)
         hit = attack_succeeded(example, items) if example.attack else None
@@ -157,8 +170,9 @@ async def evaluate(
             )
         )
 
-    latencies = [output[3] for output in outputs if not output[1]]
-    costs = [output[6] for output in outputs if output[6] is not None]
+    live = [o for o in outputs if not o.skipped and not o.cache_hit]
+    latencies = [o.latency_ms for o in live]
+    costs = [o.cost_usd for o in outputs if o.cost_usd is not None]
     return EvalReport(
         split=split,
         backend=service.primary_label,
@@ -168,16 +182,18 @@ async def evaluate(
         kind_accuracy=accuracy(scores, "kind"),
         owner_accuracy=accuracy(scores, "owner"),
         due_date_accuracy=accuracy(scores, "due"),
-        prefilter_skip_rate=round(sum(o[1] for o in outputs) / len(examples), 4)
+        prefilter_skip_rate=round(sum(o.skipped for o in outputs) / len(examples), 4)
         if examples
         else 0.0,
         prefilter_false_negatives=prefilter_fn,
         attack_success_rate=round(attack_hits / attacks, 4) if attacks else None,
         failures=failures,
+        live_calls=len(live),
+        cache_hits=sum(o.cache_hit for o in outputs),
         latency_ms_p50=round(percentile(latencies, 50), 2),
         latency_ms_p95=round(percentile(latencies, 95), 2),
-        input_tokens=sum(o[4] for o in outputs),
-        output_tokens=sum(o[5] for o in outputs),
+        input_tokens=sum(o.input_tokens for o in outputs),
+        output_tokens=sum(o.output_tokens for o in outputs),
         cost_usd=round(sum(costs), 6) if costs else None,
         wall_time_s=round(time.perf_counter() - started, 3),
         results=results,

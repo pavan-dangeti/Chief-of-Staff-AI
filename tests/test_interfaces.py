@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,8 @@ from chief_of_staff import __version__
 from chief_of_staff.api import create_app
 from chief_of_staff.cli import app
 from chief_of_staff.config import Settings
-from chief_of_staff.extraction.factory import ConfigurationError, build_service
+from chief_of_staff.errors import ConfigurationError, require_extra
+from chief_of_staff.extraction.factory import build_service
 from chief_of_staff.tracing import Tracer, cost_usd, percentile
 from helpers import ROOT, FakeAnthropic, FakeGemini, make_message
 
@@ -216,3 +218,94 @@ def test_tracing_helpers_and_jsonl_sink(tmp_path: Path) -> None:
     tracer.record(TraceRecord(run_id="r1", message_id="m1", input_tokens=5))
     line = json.loads((tmp_path / "t" / "traces.jsonl").read_text())
     assert (line["message_id"], line["input_tokens"]) == ("m1", 5)
+
+
+@pytest.mark.parametrize(
+    ("missing", "extra", "args", "env"),
+    [
+        (
+            "anthropic",
+            "anthropic",
+            ["run", "--slack", str(SAMPLES / "slack.json"), "--backend", "anthropic"],
+            {"ANTHROPIC_API_KEY": "sk-test"},
+        ),
+        (
+            "google.genai",
+            "gemini",
+            ["run", "--slack", str(SAMPLES / "slack.json"), "--backend", "gemini"],
+            {"GEMINI_API_KEY": "g-test"},
+        ),
+        (
+            "langgraph",
+            "graph",
+            ["run", "--slack", str(SAMPLES / "slack.json"), "--backend", "heuristic", "--graph"],
+            {},
+        ),
+        ("uvicorn", "api", ["serve"], {}),
+        ("google_auth_oauthlib", "gmail", ["gmail", "pull"], {}),
+    ],
+)
+def test_missing_extras_explain_how_to_install_instead_of_crashing(
+    monkeypatch: pytest.MonkeyPatch, missing: str, extra: str, args: list[str], env: dict[str, str]
+) -> None:
+    monkeypatch.setitem(sys.modules, missing, None)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    result = runner.invoke(app, args)
+    assert result.exit_code == 1
+    assert f"pip install 'chief-of-staff-ai[{extra}]'" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_require_extra_returns_installed_modules() -> None:
+    assert require_extra("json", "unused").dumps({}) == "{}"
+    with pytest.raises(ConfigurationError, match=r"chief-of-staff-ai\[demo\]"):
+        require_extra("chief_of_staff_missing_module", "demo")
+
+
+def test_eval_pins_the_requested_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    def spy(settings: Settings, **kwargs: object) -> object:
+        calls.append(kwargs)
+        return build_service(settings, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("chief_of_staff.cli.build_service", spy)
+    cli(
+        "eval",
+        "--split",
+        "injection",
+        "--backend",
+        "heuristic",
+        "--bootstrap",
+        "20",
+        "--data-dir",
+        str(ROOT / "datasets" / "eval"),
+    )
+    assert calls == [{"fallback": False}]
+
+
+async def test_evaluation_failures_are_counted_not_masked_by_fallback() -> None:
+    from chief_of_staff.evaluation.runner import evaluate, load_split
+    from helpers import StatusError
+
+    settings = Settings(
+        backend="gemini",
+        cache_enabled=False,
+        trace_path=None,
+        max_retries=0,
+        gemini_rpm=6000,
+        _env_file=None,
+    )
+    service = build_service(
+        settings,
+        gemini_client=FakeGemini(StatusError(401)),
+        anthropic_client=FakeAnthropic(None),
+        fallback=False,
+    )
+    assert [b.label for b in service.chain] == ["gemini:gemini-3.5-flash-lite"]
+    examples = load_split(ROOT / "datasets" / "eval" / "test.jsonl")[:6]
+    report = await evaluate(examples, service, split="test", bootstrap_iterations=20)
+    extracted = [r for r in report.results if not r.skipped_by_prefilter]
+    assert report.failures == len(extracted) > 0
+    assert all(not r.predicted for r in extracted)

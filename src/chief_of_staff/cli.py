@@ -7,7 +7,7 @@ import contextlib
 import logging
 import os
 import time
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
@@ -16,14 +16,12 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.markup import escape
 from rich.progress import Progress
 
 from chief_of_staff.config import Settings
-from chief_of_staff.extraction.factory import (
-    ConfigurationError,
-    build_prioritizer,
-    build_service,
-)
+from chief_of_staff.errors import ConfigurationError, require_extra
+from chief_of_staff.extraction.factory import build_prioritizer, build_service
 from chief_of_staff.ingest.files import load_messages
 from chief_of_staff.ingest.slack import SlackClient, load_slack_export
 from chief_of_staff.ledger import Ledger
@@ -40,6 +38,16 @@ app.add_typer(ledger_app, name="ledger")
 app.add_typer(gmail_app, name="gmail")
 app.add_typer(slack_app, name="slack")
 console = Console()
+errors = Console(stderr=True)
+
+
+@contextlib.contextmanager
+def _user_errors() -> Iterator[None]:
+    try:
+        yield
+    except ConfigurationError as exc:
+        errors.print(f"[red]Error:[/] {escape(str(exc))}", soft_wrap=True)
+        raise typer.Exit(1) from exc
 
 
 class OutputFormat(StrEnum):
@@ -97,15 +105,15 @@ def run(
         raise typer.BadParameter("provide at least one of --slack, --email or --slack-export")
 
     settings = _settings(backend, no_cache)
-    try:
+    with _user_errors():
         service = build_service(settings)
-    except ConfigurationError as exc:
-        raise typer.BadParameter(str(exc)) from exc
-    prioritizer = build_prioritizer(settings, policy)
-    try:
-        digest = asyncio.run(_run(service, prioritizer, messages, as_of, graph, settings.prefilter))
-    finally:
-        service.close()
+        prioritizer = build_prioritizer(settings, policy)
+        try:
+            digest = asyncio.run(
+                _run(service, prioritizer, messages, as_of, graph, settings.prefilter)
+            )
+        finally:
+            service.close()
 
     if ledger:
         with Ledger(ledger) as store:
@@ -125,6 +133,7 @@ async def _run(
     prefilter: bool,
 ) -> Digest:
     if graph:
+        require_extra("langgraph", "graph")
         from chief_of_staff.graph import build_graph, run_graph
 
         compiled = build_graph(service, prioritizer, prefilter=prefilter)
@@ -169,26 +178,24 @@ def evaluate_command(
     bootstrap: Annotated[int, typer.Option(help="Bootstrap resamples for CIs.")] = 1000,
     no_cache: Annotated[bool, typer.Option("--no-cache")] = False,
 ) -> None:
-    """Score a backend on a labeled split with bootstrap confidence intervals."""
+    """Score one backend, with no fallback, on a labeled split with bootstrap CIs."""
     from chief_of_staff.evaluation.report import to_markdown
     from chief_of_staff.evaluation.runner import evaluate, load_split
 
     settings = _settings(backend, no_cache)
-    try:
-        service = build_service(settings)
-    except ConfigurationError as exc:
-        raise typer.BadParameter(str(exc)) from exc
-    examples = load_split(data_dir / f"{split}.jsonl")
-    with contextlib.closing(service):
-        result = asyncio.run(
-            evaluate(
-                examples,
-                service,
-                split=split,
-                prefilter=settings.prefilter,
-                bootstrap_iterations=bootstrap,
+    with _user_errors():
+        service = build_service(settings, fallback=False)
+        examples = load_split(data_dir / f"{split}.jsonl")
+        with contextlib.closing(service):
+            result = asyncio.run(
+                evaluate(
+                    examples,
+                    service,
+                    split=split,
+                    prefilter=settings.prefilter,
+                    bootstrap_iterations=bootstrap,
+                )
             )
-        )
     markdown = to_markdown(result)
     if report:
         report.parent.mkdir(parents=True, exist_ok=True)
@@ -234,7 +241,9 @@ def gmail_pull(
     """Fetch recent mail into a local, git-ignored JSON file."""
     from chief_of_staff.ingest.gmail import fetch_messages, gmail_service
 
-    _save(fetch_messages(gmail_service(credentials, token), query=query, limit=limit), out)
+    with _user_errors():
+        service = gmail_service(credentials, token)
+    _save(fetch_messages(service, query=query, limit=limit), out)
 
 
 @slack_app.command("pull")
@@ -268,8 +277,9 @@ def serve(
     port: Annotated[int, typer.Option()] = 8000,
 ) -> None:
     """Serve the HTTP API (needs the api extra)."""
-    import uvicorn
+    with _user_errors():
+        uvicorn = require_extra("uvicorn", "api")
+        require_extra("fastapi", "api")
+        from chief_of_staff.api import create_app
 
-    from chief_of_staff.api import create_app
-
-    uvicorn.run(create_app(), host=host, port=port)
+        uvicorn.run(create_app(), host=host, port=port)

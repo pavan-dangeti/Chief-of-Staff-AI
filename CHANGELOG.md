@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.2] - 2026-09-27
+
+### Added
+
+- First live LLM evaluation: Gemini 3.5 Flash-Lite scores item F1 0.932 (95% CI 0.878–0.973)
+  on the held-out test split, against 0.848 for the offline rules. The injection suite shows
+  one successful suppression attack, documented in the README.
+- Evaluation reports separate live calls from cached answers and compute latency from live
+  calls only.
+
+### Fixed
+
+- `cos eval` now scores only the requested backend. Previously, if an LLM backend failed, the
+  fallback chain could answer with the offline rules while the report still carried the LLM's
+  name; failures are now counted instead of masked.
+- A missing optional extra (`anthropic`, `gemini`, `graph`, `api`, `gmail`) now produces a
+  one-line install hint and exit code 1 instead of a Python traceback. The message is printed
+  unwrapped and unstyled so the `pip install` command can be copied as-is.
+
+### Changed
+
+- `ConfigurationError` lives in `chief_of_staff.errors`; `build_service(..., fallback=False)`
+  pins the chain to the primary backend.
+- Gemini requests disable automatic function calling, which the pipeline never uses, removing
+  an SDK warning from every run.
+
 ## [2.0.1] - 2026-09-27
 
 ### Added
