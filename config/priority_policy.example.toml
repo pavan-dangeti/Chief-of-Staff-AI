@@ -1,0 +1,17 @@
+# Company-specific overrides for `cos run --policy config/priority_policy.example.toml`.
+# Anything omitted keeps the defaults in chief_of_staff/prioritization.py.
+
+review_threshold = 0.6
+
+[role_weights]
+sales_lead = 2.5
+head_of_ops = 2.0
+
+[signals.enterprise_deal]
+pattern = "\\b(?:fortune 500|enterprise tier|seven figures)\\b"
+weight = 2.0
+
+[thresholds]
+p0 = 7.0
+p1 = 4.5
+p2 = 2.5

@@ -1,0 +1,9 @@
+.git
+.cos
+data
+tests
+reports
+benchmarks
+datasets
+**/__pycache__
+.env

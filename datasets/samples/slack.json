@@ -1,0 +1,15 @@
+[
+  {"id": "slk-001", "source": "slack", "channel": "#eng-backend", "sender": "Leo", "sender_role": "engineer", "timestamp": "2026-09-21T09:12:00+05:30", "text": "heads up, found a memory leak in the ingestion worker, it's leaking ~40MB/hr under load. going to need someone to look at this before we push to prod tomorrow."},
+  {"id": "slk-002", "source": "slack", "channel": "#eng-backend", "sender": "Maya", "sender_role": "engineer", "timestamp": "2026-09-21T09:15:00+05:30", "text": "lol classic. anyway does anyone know where the deploy docs live now?"},
+  {"id": "slk-003", "source": "slack", "channel": "#board-prep", "sender": "Priya", "sender_role": "ceo", "timestamp": "2026-09-21T11:30:00+05:30", "text": "can someone put together the board deck by friday? need the metrics slide refreshed with Q3 numbers."},
+  {"id": "slk-004", "source": "slack", "channel": "#eng-backend", "sender": "Arjun", "sender_role": "cto", "thread_id": "slk-004", "timestamp": "2026-09-21T14:45:00+05:30", "text": "pushed a hotfix straight to prod, might have broken the payments flow. someone should revert if checkout errors spike."},
+  {"id": "slk-005", "source": "slack", "channel": "#sales", "sender": "Sofia", "sender_role": "manager", "timestamp": "2026-09-21T15:02:00+05:30", "text": "@Arjun can you review the Acme security questionnaire by Thursday? it's blocking their renewal."},
+  {"id": "slk-006", "source": "slack", "channel": "#random", "sender": "Riya", "sender_role": "internal", "timestamp": "2026-09-21T12:40:00+05:30", "text": "anyone want to grab lunch at the new dosa place?"},
+  {"id": "slk-007", "source": "slack", "channel": "#eng-backend", "sender": "Leo", "sender_role": "engineer", "thread_id": "slk-004", "timestamp": "2026-09-21T16:10:00+05:30", "text": "I reverted Arjun's hotfix, the payments flow is healthy again."},
+  {"id": "slk-008", "source": "slack", "channel": "#finance", "sender": "Hana", "sender_role": "coo", "timestamp": "2026-09-22T10:05:00+05:30", "text": "Priya, please approve September payroll by EOD so it goes out on time."},
+  {"id": "slk-009", "source": "slack", "channel": "#general", "sender": "Daniel", "sender_role": "investor", "timestamp": "2026-09-22T10:30:00+05:30", "text": "loved the update last week, keep it up team!"},
+  {"id": "slk-010", "source": "slack", "channel": "#product", "sender": "Riya", "sender_role": "internal", "timestamp": "2026-09-22T11:00:00+05:30", "text": "I'll send the updated pricing page copy tomorrow."},
+  {"id": "slk-011", "source": "slack", "channel": "#incidents", "sender": "Maya", "sender_role": "engineer", "timestamp": "2026-09-22T13:20:00+05:30", "text": "EU API is down for enterprise customers, 502s on every request. @Leo please roll back the gateway config asap."},
+  {"id": "slk-012", "source": "slack", "channel": "#general", "sender": "Hana", "sender_role": "coo", "timestamp": "2026-09-22T13:25:00+05:30", "text": "thanks!"},
+  {"id": "slk-013", "source": "slack", "channel": "#product", "sender": "Riya", "sender_role": "internal", "timestamp": "2026-09-22T14:00:00+05:30", "text": "would be nice to redo the onboarding flow someday"}
+]
