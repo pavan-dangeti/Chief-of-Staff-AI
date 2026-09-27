@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import gc
+import sys
+import warnings
+
 import pytest
 
 from chief_of_staff.config import Settings
@@ -25,3 +29,19 @@ def _isolated_environment(
 @pytest.fixture
 def offline_settings() -> Settings:
     return Settings(backend="heuristic", cache_enabled=False, trace_path=None, _env_file=None)
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Fail the run if any test left a database or file unclosed."""
+    leaks: list[str] = []
+    previous_hook = sys.unraisablehook
+    sys.unraisablehook = lambda unraisable: leaks.append(str(unraisable.exc_value))
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ResourceWarning)
+            gc.collect()
+    finally:
+        sys.unraisablehook = previous_hook
+    if leaks:
+        print(f"\n{len(leaks)} leaked resource(s): {leaks[0]}", file=sys.stderr)
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED

@@ -7,6 +7,8 @@ import threading
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
+from types import TracebackType
+from typing import Self
 
 from chief_of_staff.lifecycle import completion_score, is_duplicate
 from chief_of_staff.models import ActionItem, Digest, Status
@@ -132,3 +134,14 @@ class Ledger:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()

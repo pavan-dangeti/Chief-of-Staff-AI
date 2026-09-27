@@ -5,7 +5,7 @@
 **Turns Slack and email into a verified, prioritized commitment ledger for startup teams.**
 
 [![CI](https://github.com/pavan-dangeti/Chief-of-Staff-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/pavan-dangeti/Chief-of-Staff-AI/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776AB?logo=python&logoColor=white)
 ![mypy](https://img.shields.io/badge/mypy-strict-2A6DB2)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 ![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)
@@ -263,7 +263,7 @@ make docs             # re-render the README demo and screenshots from real runs
 pre-commit install
 ```
 
-CI runs lint, strict type checking and the test suite on Python 3.11, 3.12 and 3.13, plus the
+CI runs lint, strict type checking and the test suite on Python 3.11 to 3.14, plus the
 offline evaluation and the production-style run. A manually triggered job evaluates the live
 Claude API when an `ANTHROPIC_API_KEY` secret is configured.
 

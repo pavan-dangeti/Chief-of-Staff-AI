@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-09-27
+
+### Added
+
+- Python 3.14 support, verified in CI alongside 3.11 to 3.13.
+- `Ledger` and `ExtractionCache` are context managers; `ExtractionService.close()` releases the cache.
+
+### Fixed
+
+- SQLite connections are now closed deterministically by the CLI, the HTTP API (on shutdown)
+  and the test suite. Python 3.13+ reported them as unclosed via `ResourceWarning`.
+- The test suite fails on any leaked resource, so this cannot regress.
+
 ## [2.0.0] - 2026-09-27
 
 A ground-up rebuild of the v1 prototype into an evaluated, production-ready pipeline.

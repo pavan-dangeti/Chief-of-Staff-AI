@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
+from chief_of_staff import __version__
 from chief_of_staff.api import create_app
 from chief_of_staff.cli import app
 from chief_of_staff.config import Settings
@@ -123,7 +124,7 @@ def test_api_endpoints(offline_settings: Settings) -> None:
     client = TestClient(create_app(offline_settings))
     assert client.get("/healthz").json() == {
         "status": "ok",
-        "version": "2.0.0",
+        "version": __version__,
         "backend": "heuristic:rules-v2",
     }
     message = make_message("@Leo please roll back the gateway asap, EU API is down")
@@ -180,6 +181,7 @@ def test_factory_builds_fallback_chain_and_escalation() -> None:
         service.escalation is not None and service.escalation.label == "anthropic:claude-sonnet-5"
     )
     assert service.cache is not None
+    service.close()
 
     gemini = build_service(
         Settings(

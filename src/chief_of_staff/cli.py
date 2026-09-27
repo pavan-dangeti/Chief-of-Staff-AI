@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import time
@@ -101,10 +102,14 @@ def run(
     except ConfigurationError as exc:
         raise typer.BadParameter(str(exc)) from exc
     prioritizer = build_prioritizer(settings, policy)
-    digest = asyncio.run(_run(service, prioritizer, messages, as_of, graph, settings.prefilter))
+    try:
+        digest = asyncio.run(_run(service, prioritizer, messages, as_of, graph, settings.prefilter))
+    finally:
+        service.close()
 
     if ledger:
-        result = Ledger(ledger).sync(digest)
+        with Ledger(ledger) as store:
+            result = store.sync(digest)
         console.print(
             f"[dim]ledger: +{result.added} new, {result.updated} updated, {result.closed} closed[/]"
         )
@@ -174,15 +179,16 @@ def evaluate_command(
     except ConfigurationError as exc:
         raise typer.BadParameter(str(exc)) from exc
     examples = load_split(data_dir / f"{split}.jsonl")
-    result = asyncio.run(
-        evaluate(
-            examples,
-            service,
-            split=split,
-            prefilter=settings.prefilter,
-            bootstrap_iterations=bootstrap,
+    with contextlib.closing(service):
+        result = asyncio.run(
+            evaluate(
+                examples,
+                service,
+                split=split,
+                prefilter=settings.prefilter,
+                bootstrap_iterations=bootstrap,
+            )
         )
-    )
     markdown = to_markdown(result)
     if report:
         report.parent.mkdir(parents=True, exist_ok=True)
@@ -203,12 +209,12 @@ def ledger_show(
     if not path.exists():
         raise typer.BadParameter(f"no ledger at {path}")
     selected = None if status == "all" else Status(status)
-    ledger = Ledger(path)
-    items = ledger.items(selected)
+    with Ledger(path) as ledger:
+        items = ledger.items(selected)
+        overdue = {item.id for item in ledger.overdue(datetime.now().astimezone().date())}
     if output_format is OutputFormat.JSON:
         typer.echo("[" + ",".join(item.model_dump_json() for item in items) + "]")
         return
-    overdue = {item.id for item in ledger.overdue(datetime.now().astimezone().date())}
     for item in items:
         marker = "[red]OVERDUE[/] " if item.id in overdue else ""
         details = (

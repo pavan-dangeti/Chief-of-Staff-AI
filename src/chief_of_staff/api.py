@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI
@@ -32,7 +34,13 @@ def create_app(
     settings = settings or Settings()
     extraction = service or build_service(settings)
     pipeline = Pipeline(extraction, build_prioritizer(settings), prefilter=settings.prefilter)
-    app = FastAPI(title="Chief-of-Staff AI", version=__version__)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        extraction.close()
+
+    app = FastAPI(title="Chief-of-Staff AI", version=__version__, lifespan=lifespan)
 
     @app.get("/healthz")
     async def healthz() -> Health:

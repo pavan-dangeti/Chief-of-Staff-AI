@@ -65,9 +65,10 @@ async def test_total_failure_is_reported_not_raised() -> None:
 
 async def test_cache_serves_repeat_messages_without_a_call() -> None:
     client = FakeAnthropic(anthropic_response([GOOD]))
-    service = ExtractionService(chain=[remote(client)], cache=ExtractionCache(":memory:"))
-    first = await service.extract_message(MESSAGE)
-    second = await service.extract_message(MESSAGE)
+    with ExtractionCache(":memory:") as cache:
+        service = ExtractionService(chain=[remote(client)], cache=cache)
+        first = await service.extract_message(MESSAGE)
+        second = await service.extract_message(MESSAGE)
     assert len(client.calls) == 1
     assert second.trace.cache_hit and not first.trace.cache_hit
     assert second.items == first.items

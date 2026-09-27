@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import date, timedelta
+
+import pytest
 
 from chief_of_staff.ledger import Ledger
 from chief_of_staff.models import Digest, RunStats, Status
 from helpers import MONDAY, make_action_item
+
+
+@pytest.fixture
+def ledger() -> Iterator[Ledger]:
+    with Ledger(":memory:") as store:
+        yield store
 
 
 def digest(open_items: list = (), resolved: list = (), completions: list = ()) -> Digest:  # type: ignore[assignment,type-arg]
@@ -18,8 +27,7 @@ def digest(open_items: list = (), resolved: list = (), completions: list = ()) -
     )
 
 
-def test_sync_is_idempotent_for_the_same_messages() -> None:
-    ledger = Ledger(":memory:")
+def test_sync_is_idempotent_for_the_same_messages(ledger: Ledger) -> None:
     task = make_action_item("Pay the Brightline invoice", id="a:0", due="2026-09-18")
     assert ledger.sync(digest([task])).added == 1
     again = ledger.sync(digest([task]))
@@ -27,16 +35,14 @@ def test_sync_is_idempotent_for_the_same_messages() -> None:
     assert len(ledger.items()) == 1
 
 
-def test_rephrased_duplicate_links_to_the_open_item() -> None:
-    ledger = Ledger(":memory:")
+def test_rephrased_duplicate_links_to_the_open_item(ledger: Ledger) -> None:
     ledger.sync(digest([make_action_item("Send the board deck", id="a:0", owner=None)]))
     ledger.sync(digest([make_action_item("Send the board deck to members", id="b:0", owner=None)]))
     [item] = ledger.items()
     assert item.related_message_ids == ["b"]
 
 
-def test_completion_in_a_later_run_closes_the_item() -> None:
-    ledger = Ledger(":memory:")
+def test_completion_in_a_later_run_closes_the_item(ledger: Ledger) -> None:
     ledger.sync(digest([make_action_item("Pay the Brightline Q3 invoice", id="a:0")]))
     later = MONDAY + timedelta(days=1)
     done = make_action_item(
@@ -47,8 +53,7 @@ def test_completion_in_a_later_run_closes_the_item() -> None:
     assert ledger.items(Status.DONE)[0].resolved_by == "b"
 
 
-def test_resolved_items_close_their_open_counterpart() -> None:
-    ledger = Ledger(":memory:")
+def test_resolved_items_close_their_open_counterpart(ledger: Ledger) -> None:
     task = make_action_item("Revert the hotfix", id="a:0")
     ledger.sync(digest([task]))
     result = ledger.sync(digest(resolved=[task.model_copy(update={"status": Status.DONE})]))
@@ -67,5 +72,5 @@ def test_overdue_and_persistence(tmp_path: object) -> None:
         )
     )
     ledger.close()
-    reopened = Ledger(path)
-    assert [i.id for i in reopened.overdue(date(2026, 9, 20))] == ["a:0"]
+    with Ledger(path) as reopened:
+        assert [i.id for i in reopened.overdue(date(2026, 9, 20))] == ["a:0"]

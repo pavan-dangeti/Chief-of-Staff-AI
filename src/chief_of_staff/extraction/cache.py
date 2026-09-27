@@ -7,6 +7,8 @@ import sqlite3
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
+from types import TracebackType
+from typing import Self
 
 from chief_of_staff.extraction.prompt import PROMPT_VERSION
 from chief_of_staff.models import RawExtraction
@@ -47,3 +49,14 @@ class ExtractionCache:
     def close(self) -> None:
         with self._lock:
             self._conn.close()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()

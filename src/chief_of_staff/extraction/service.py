@@ -96,6 +96,10 @@ class ExtractionService:
             raise ValueError("ExtractionService needs at least one backend")
         self._semaphore = asyncio.Semaphore(self.max_concurrency)
 
+    def close(self) -> None:
+        if self.cache is not None:
+            self.cache.close()
+
     @property
     def primary_label(self) -> str:
         return self.chain[0].label
