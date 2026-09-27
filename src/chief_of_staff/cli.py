@@ -1,4 +1,4 @@
-"""Command-line interface: ``cos run``, ``eval``, ``ledger``, ``gmail`` and ``serve``."""
+"""Chief-of-Staff AI: turn Slack and email into a verified, prioritized commitment ledger."""
 
 from __future__ import annotations
 
