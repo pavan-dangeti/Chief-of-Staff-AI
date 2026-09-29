@@ -1,6 +1,8 @@
 .PHONY: install check lint typecheck test eval eval-llm bench production-run docs demo serve clean
 
-BACKEND ?= anthropic
+BACKEND ?= nvidia
+MODEL ?=
+TAG ?= $(BACKEND)
 
 install:
 	pip install -e ".[dev]"
@@ -19,13 +21,17 @@ test:
 
 eval:
 	for split in test dev injection; do \
-		cos eval --split $$split --backend heuristic --no-cache --report reports/heuristic-$$split.md; \
+		cos eval --split $$split --backend heuristic --no-cache --report reports/heuristic-$$split.md \
+			--json reports/heuristic-$$split.json; \
 	done
 
+# Live evaluation. The per-run cache makes it resumable: rerun the same command after a rate
+# limit and only the missing answers are requested. Delete the cache file for a fresh run.
 eval-llm:
 	for split in test injection; do \
-		cos eval --split $$split --backend $(BACKEND) --report reports/$(BACKEND)-$$split.md \
-			--json reports/$(BACKEND)-$$split.json; \
+		cos eval --split $$split --backend $(BACKEND) $(if $(MODEL),--model $(MODEL)) \
+			--cache .cos/runs/$(TAG).sqlite --report reports/$(TAG)-$$split.md \
+			--json reports/$(TAG)-$$split.json || exit 1; \
 	done
 
 bench:

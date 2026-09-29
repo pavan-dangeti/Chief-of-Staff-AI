@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -164,3 +165,40 @@ async def test_report_separates_live_calls_from_cached_answers() -> None:
     assert len(client.calls) == 4
     assert "n/a (all answers cached)" in to_markdown(warm)
     assert "| Answers from live calls / from cache | 4 / 0 |" in to_markdown(cold)
+
+
+async def test_compare_builds_one_row_per_backend_and_refuses_bad_inputs(
+    offline_settings: Settings, tmp_path: Path
+) -> None:
+    from typer.testing import CliRunner
+
+    from chief_of_staff.cli import app
+    from chief_of_staff.evaluation.compare import comparison_table
+
+    service = build_service(offline_settings)
+    test = await evaluate(
+        load_split(EVAL / "test.jsonl"), service, split="test", bootstrap_iterations=20
+    )
+    injection = await evaluate(
+        load_split(EVAL / "injection.jsonl"), service, split="injection", bootstrap_iterations=20
+    )
+    row = comparison_table([(test, injection)]).splitlines()[2]
+    assert row.startswith("| `heuristic:rules-v2` | **0.848**") and "0 of 15" in row
+    assert "ms, local" in row and "$0 (runs locally)" in row
+    with pytest.raises(ValueError, match="expected a test and an injection"):
+        comparison_table([(injection, test)])
+    with pytest.raises(ValueError, match="differ in backend"):
+        comparison_table([(test, injection.model_copy(update={"backend": "other"}))])
+    with pytest.raises(ValueError, match="failed messages"):
+        comparison_table([(test.model_copy(update={"failures": 1}), injection)])
+
+    for split, report in (("test", test), ("injection", injection)):
+        (tmp_path / f"rules-{split}.json").write_text(report.model_dump_json())
+    runner = CliRunner()
+    ok = runner.invoke(
+        app,
+        ["compare", "rules", "--reports-dir", str(tmp_path), "--output", str(tmp_path / "t.md")],
+    )
+    assert ok.exit_code == 0 and "heuristic:rules-v2" in (tmp_path / "t.md").read_text()
+    missing = runner.invoke(app, ["compare", "nope", "--reports-dir", str(tmp_path)])
+    assert missing.exit_code == 1 and "Error" in missing.output

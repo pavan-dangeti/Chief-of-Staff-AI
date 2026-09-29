@@ -22,5 +22,4 @@ dist/
 .coverage
 coverage.xml
 htmlcov/
-reports/*.json
 .DS_Store

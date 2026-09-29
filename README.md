@@ -212,6 +212,7 @@ Optional extras keep the base install small: `anthropic`, `gemini`, `graph` (Lan
 | `cos run ... --policy config/priority_policy.example.toml` | Apply company-specific priority weights |
 | `cos ledger show [--status open\|done\|all]` | List tracked commitments and flag overdue ones |
 | `cos eval --split test\|dev\|injection` | Score a backend with confidence intervals |
+| `cos compare heuristic gemini ...` | One comparison table from saved evaluation reports |
 | `cos slack pull --channel C0123:eng` | Fetch recent channel history (`SLACK_BOT_TOKEN`) |
 | `cos gmail pull` | Fetch recent mail via read-only OAuth into git-ignored `data/private/` |
 | `cos serve` | Start the HTTP API |
@@ -234,17 +235,20 @@ Settings come from the environment (prefix `COS_`) or a `.env` file; see
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `COS_BACKEND` | `auto` | `anthropic`, `gemini`, `heuristic`, or `auto` (picks by available key) |
+| `COS_BACKEND` | `auto` | `anthropic`, `gemini`, `nvidia`, `heuristic`, or `auto` (picks by available key) |
 | `COS_ANTHROPIC_MODEL` | `claude-haiku-4-5-20251001` | Primary extraction model |
 | `COS_ANTHROPIC_ESCALATION_MODEL` | `claude-sonnet-5` | Re-extracts low-confidence answers |
 | `COS_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Primary or fallback provider |
-| `COS_ANTHROPIC_RPM`, `COS_GEMINI_RPM` | `50`, `15` | Client-side rate limits; match your plan |
+| `COS_NVIDIA_MODEL` | `deepseek-ai/deepseek-v4.1-flash` | Any chat model on an OpenAI-compatible endpoint |
+| `COS_NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | NVIDIA API Catalog by default; any OpenAI-compatible host works |
+| `COS_ANTHROPIC_ESCALATION_MODEL`, `COS_GEMINI_ESCALATION_MODEL`, `COS_NVIDIA_ESCALATION_MODEL` | `claude-sonnet-5`, unset, unset | Re-extract low-confidence answers with a stronger model on the same provider |
+| `COS_ANTHROPIC_RPM`, `COS_GEMINI_RPM`, `COS_NVIDIA_RPM` | `50`, `15`, `20` | Client-side rate limits; match your plan |
 | `COS_MAX_CONCURRENCY` | `8` | Messages extracted in parallel |
 | `COS_ESCALATION_THRESHOLD` | `0.55` | Confidence below which to escalate |
 | `COS_CIRCUIT_FAILURE_THRESHOLD` | `5` | Consecutive failures before a provider is bypassed |
 | `COS_REDACT_PII` | `true` | Mask PII and secrets before API calls |
 | `COS_DATE_ORDER` | `DMY` | How to read `03/04`-style dates |
-| `COS_PRICES_PER_MTOK` | `{}` | `{"model": [input, output]}` in USD, for cost reporting |
+| `COS_PRICES_PER_MTOK` | dated table in [`docs/pricing.md`](docs/pricing.md) | `{"model": [input, output]}` in USD per 1M tokens, for cost estimates |
 
 ## Project structure
 

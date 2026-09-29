@@ -228,6 +228,33 @@ def evaluate_command(
     console.print(Markdown(markdown))
 
 
+@app.command()
+def compare(
+    tags: Annotated[list[str], typer.Argument(help="Report tags, e.g. heuristic gemini.")],
+    reports_dir: Annotated[Path, typer.Option()] = Path("reports"),
+    output: Annotated[Path | None, typer.Option(help="Write the Markdown table here.")] = None,
+) -> None:
+    """Compare backends from saved <tag>-test.json and <tag>-injection.json reports."""
+    from chief_of_staff.evaluation.compare import comparison_table, load_report
+
+    try:
+        table = comparison_table(
+            [
+                (
+                    load_report(reports_dir / f"{tag}-test.json"),
+                    load_report(reports_dir / f"{tag}-injection.json"),
+                )
+                for tag in tags
+            ]
+        )
+    except (OSError, ValueError) as exc:
+        errors.print(f"[red]Error:[/] {escape(str(exc))}", soft_wrap=True)
+        raise typer.Exit(1) from exc
+    if output:
+        output.write_text(table, encoding="utf-8")
+    typer.echo(table)
+
+
 @ledger_app.command("show")
 def ledger_show(
     path: Annotated[Path, typer.Option()] = Path(".cos/ledger.sqlite"),
