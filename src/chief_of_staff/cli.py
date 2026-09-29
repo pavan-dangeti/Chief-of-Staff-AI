@@ -61,12 +61,15 @@ class Backend(StrEnum):
     HEURISTIC = "heuristic"
     ANTHROPIC = "anthropic"
     GEMINI = "gemini"
+    NVIDIA = "nvidia"
 
 
-def _settings(backend: Backend, no_cache: bool) -> Settings:
+def _settings(backend: Backend, no_cache: bool, cache: Path | None = None) -> Settings:
     overrides: dict[str, Any] = {"backend": backend.value}
     if no_cache:
         overrides["cache_enabled"] = False
+    if cache is not None:
+        overrides["cache_path"] = cache
     return Settings(**overrides)
 
 
@@ -177,12 +180,21 @@ def evaluate_command(
     ] = None,
     bootstrap: Annotated[int, typer.Option(help="Bootstrap resamples for CIs.")] = 1000,
     no_cache: Annotated[bool, typer.Option("--no-cache")] = False,
+    cache: Annotated[
+        Path | None,
+        typer.Option(help="Response cache for this run; rerun with the same path to resume."),
+    ] = None,
+    model: Annotated[str | None, typer.Option(help="Model ID for the chosen backend.")] = None,
 ) -> None:
     """Score one backend, with no fallback, on a labeled split with bootstrap CIs."""
     from chief_of_staff.evaluation.report import to_markdown
     from chief_of_staff.evaluation.runner import evaluate, load_split
 
-    settings = _settings(backend, no_cache)
+    if model is not None and backend in (Backend.AUTO, Backend.HEURISTIC):
+        raise typer.BadParameter("--model needs --backend anthropic, gemini or nvidia")
+    settings = _settings(backend, no_cache, cache)
+    if model is not None:
+        settings = settings.model_copy(update={f"{backend.value}_model": model})
     with _user_errors():
         service = build_service(settings, fallback=False)
         examples = load_split(data_dir / f"{split}.jsonl")
@@ -197,6 +209,16 @@ def evaluate_command(
                 )
             )
     markdown = to_markdown(result)
+    if result.failures:
+        # An incomplete run would score failures as misses; refuse to publish it.
+        console.print(Markdown(markdown))
+        errors.print(
+            f"[red]{result.failures} of {result.examples} messages failed[/] (often rate limits); "
+            "no report written. Rerun the same command to resume: answers already received "
+            "are served from the run cache.",
+            soft_wrap=True,
+        )
+        raise typer.Exit(1)
     if report:
         report.parent.mkdir(parents=True, exist_ok=True)
         report.write_text(markdown, encoding="utf-8")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Protocol
 
@@ -35,15 +36,19 @@ class LLMExtractor(ABC):
     async def _generate(self, prompt: str, repair_note: str | None) -> tuple[Any, Usage]:
         """Call the provider and return the raw structured payload plus token usage."""
 
+    async def _timed(self, prompt: str, repair_note: str | None) -> tuple[Any, Usage]:
+        started = time.perf_counter()
+        payload, usage = await self._generate(prompt, repair_note)
+        elapsed = round((time.perf_counter() - started) * 1000, 2)
+        return payload, usage.model_copy(update={"latency_ms": elapsed})
+
     async def extract(self, message: Message, body: str) -> RawExtraction:
         prompt = render_message(message, body)
-        payload, usage = await self._generate(prompt, None)
+        payload, usage = await self._timed(prompt, None)
         try:
             response = _validate(payload)
         except ExtractionError as first_error:
-            payload, repair_usage = await self._generate(
-                prompt, repair_instruction(str(first_error))
-            )
+            payload, repair_usage = await self._timed(prompt, repair_instruction(str(first_error)))
             usage = usage + repair_usage
             response = _validate(payload)
         return RawExtraction(items=response.items, usage=usage, backend=self.name, model=self.model)

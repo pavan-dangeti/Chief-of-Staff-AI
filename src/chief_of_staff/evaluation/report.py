@@ -23,6 +23,14 @@ def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
         if report.live_calls
         else "n/a (all answers cached)"
     )
+    call_time = (
+        f"{report.call_ms_p50:.0f} / {report.call_ms_p95:.0f} ms" if report.timed_calls else "n/a"
+    )
+    per_1k = (
+        "n/a (no price configured)"
+        if report.list_cost_per_1k_messages_usd is None
+        else f"${report.list_cost_per_1k_messages_usd:.4f} (see docs/pricing.md)"
+    )
     lines = [
         f"## Evaluation: `{report.split}` split, backend `{report.backend}`",
         "",
@@ -49,6 +57,10 @@ def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
         f"| Latency p50 / p95, live calls only | {latency} |",
         f"| Tokens in / out | {report.input_tokens:,} / {report.output_tokens:,} |",
         f"| Cost | {'n/a' if report.cost_usd is None else f'${report.cost_usd:.4f}'} |",
+        f"| Provider call time p50 / p95 ({report.timed_calls} timed answers) | {call_time} |",
+        f"| Recorded tokens in / out, all answers | {report.recorded_input_tokens:,} / "
+        f"{report.recorded_output_tokens:,} |",
+        f"| List-price estimate per 1,000 messages | {per_1k} |",
     ]
     if report.attack_success_rate is not None:
         lines.append(

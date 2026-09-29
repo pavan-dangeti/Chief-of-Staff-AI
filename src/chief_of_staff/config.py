@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BackendName = Literal["auto", "heuristic", "anthropic", "gemini"]
+BackendName = Literal["auto", "heuristic", "anthropic", "gemini", "nvidia"]
+
+
+def list_prices() -> dict[str, tuple[float, float]]:
+    """Dated list prices bundled with the package (see docs/pricing.md)."""
+    table = tomllib.loads((Path(__file__).parent / "pricing.toml").read_text(encoding="utf-8"))
+    return {model: (row["input"], row["output"]) for model, row in table["models"].items()}
 
 
 class Settings(BaseSettings):
@@ -33,6 +40,22 @@ class Settings(BaseSettings):
     gemini_temperature: float | None = None
     gemini_rpm: float = 15.0
 
+    nvidia_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("COS_NVIDIA_API_KEY", "NVIDIA_API_KEY")
+    )
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_model: str = "deepseek-ai/deepseek-v4.1-flash"
+    nvidia_escalation_model: str | None = None
+    # Free keys are shared and rate limited; stay well under the catalog's per-key limit.
+    nvidia_rpm: float = 20.0
+    # Extraction does not need chain-of-thought: switching it off cuts tokens and latency.
+    # Each chat template reads its own key and ignores the other.
+    nvidia_extra_body: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "chat_template_kwargs": {"thinking": False, "enable_thinking": False}
+        }
+    )
+
     max_concurrency: int = Field(default=8, ge=1)
     max_retries: int = Field(default=5, ge=0)
     circuit_failure_threshold: int = Field(default=5, ge=1)
@@ -50,13 +73,15 @@ class Settings(BaseSettings):
     cache_path: Path = Path(".cos/cache.sqlite")
     trace_path: Path | None = Path(".cos/traces.jsonl")
 
-    prices_per_mtok: dict[str, tuple[float, float]] = Field(default_factory=dict)
+    prices_per_mtok: dict[str, tuple[float, float]] = Field(default_factory=list_prices)
 
-    def resolved_backend(self) -> Literal["heuristic", "anthropic", "gemini"]:
+    def resolved_backend(self) -> Literal["heuristic", "anthropic", "gemini", "nvidia"]:
         if self.backend != "auto":
             return self.backend
         if self.anthropic_api_key:
             return "anthropic"
         if self.gemini_api_key:
             return "gemini"
+        if self.nvidia_api_key:
+            return "nvidia"
         return "heuristic"

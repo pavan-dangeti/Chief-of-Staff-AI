@@ -115,11 +115,14 @@ class ExtractionResponse(BaseModel):
 class Usage(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
+    # Time spent inside provider calls only (no rate-limit queueing), kept with cached answers.
+    latency_ms: float = 0.0
 
     def __add__(self, other: Usage) -> Usage:
         return Usage(
             input_tokens=self.input_tokens + other.input_tokens,
             output_tokens=self.output_tokens + other.output_tokens,
+            latency_ms=self.latency_ms + other.latency_ms,
         )
 
 
