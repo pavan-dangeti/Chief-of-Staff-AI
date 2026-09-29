@@ -149,6 +149,7 @@ def test_api_endpoints(offline_settings: Settings) -> None:
         ({"GEMINI_API_KEY": "g"}, "gemini"),
         ({"GOOGLE_API_KEY": "g"}, "gemini"),
         ({"ANTHROPIC_API_KEY": "a", "GEMINI_API_KEY": "g"}, "anthropic"),
+        ({"NVIDIA_API_KEY": "n", "GEMINI_API_KEY": "g"}, "nvidia"),
         ({"ANTHROPIC_API_KEY": "a", "COS_BACKEND": "heuristic"}, "heuristic"),
     ],
 )

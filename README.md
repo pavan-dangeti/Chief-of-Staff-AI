@@ -235,11 +235,11 @@ Settings come from the environment (prefix `COS_`) or a `.env` file; see
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `COS_BACKEND` | `auto` | `anthropic`, `gemini`, `nvidia`, `heuristic`, or `auto` (picks by available key) |
+| `COS_BACKEND` | `auto` | `anthropic`, `nvidia`, `gemini`, `heuristic`, or `auto` (picks by available key, in that order) |
 | `COS_ANTHROPIC_MODEL` | `claude-haiku-4-5-20251001` | Primary extraction model |
 | `COS_ANTHROPIC_ESCALATION_MODEL` | `claude-sonnet-5` | Re-extracts low-confidence answers |
 | `COS_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Primary or fallback provider |
-| `COS_NVIDIA_MODEL` | `deepseek-ai/deepseek-v4.1-flash` | Any chat model on an OpenAI-compatible endpoint |
+| `COS_NVIDIA_MODEL` | `z-ai/glm-5.3-flash` | Any chat model on an OpenAI-compatible endpoint |
 | `COS_NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | NVIDIA API Catalog by default; any OpenAI-compatible host works |
 | `COS_ANTHROPIC_ESCALATION_MODEL`, `COS_GEMINI_ESCALATION_MODEL`, `COS_NVIDIA_ESCALATION_MODEL` | `claude-sonnet-5`, unset, unset | Re-extract low-confidence answers with a stronger model on the same provider |
 | `COS_ANTHROPIC_RPM`, `COS_GEMINI_RPM`, `COS_NVIDIA_RPM` | `50`, `15`, `20` | Client-side rate limits; match your plan |

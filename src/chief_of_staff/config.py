@@ -44,7 +44,8 @@ class Settings(BaseSettings):
         default=None, validation_alias=AliasChoices("COS_NVIDIA_API_KEY", "NVIDIA_API_KEY")
     )
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
-    nvidia_model: str = "deepseek-ai/deepseek-v4.1-flash"
+    # Highest recall of the models compared in reports/comparison.md.
+    nvidia_model: str = "z-ai/glm-5.3-flash"
     nvidia_escalation_model: str | None = None
     # Free keys are shared and rate limited; stay well under the catalog's per-key limit.
     nvidia_rpm: float = 20.0
@@ -80,8 +81,8 @@ class Settings(BaseSettings):
             return self.backend
         if self.anthropic_api_key:
             return "anthropic"
-        if self.gemini_api_key:
-            return "gemini"
         if self.nvidia_api_key:
             return "nvidia"
+        if self.gemini_api_key:
+            return "gemini"
         return "heuristic"

@@ -142,7 +142,7 @@ def test_factory_builds_nvidia_with_its_own_escalation_model() -> None:
         _env_file=None,
     )
     service = build_service(settings, nvidia_client=http)
-    assert [b.label for b in service.chain] == [f"nvidia:{MODEL}"]
+    assert [b.label for b in service.chain] == ["nvidia:z-ai/glm-5.3-flash"]
     assert service.escalation is not None and service.escalation.label == "nvidia:z-ai/glm-5.3"
     with pytest.raises(ConfigurationError, match="NVIDIA_API_KEY"):
         build_service(Settings(backend="nvidia", _env_file=None))

@@ -89,8 +89,8 @@ def build_service(
             settings.anthropic_model,
             settings.anthropic_escalation_model,
         ),
-        "gemini": (gemini_backend, settings.gemini_model, settings.gemini_escalation_model),
         "nvidia": (nvidia_backend, settings.nvidia_model, settings.nvidia_escalation_model),
+        "gemini": (gemini_backend, settings.gemini_model, settings.gemini_escalation_model),
     }
 
     chain: list[Backend] = []
