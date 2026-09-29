@@ -6,6 +6,32 @@
 | `eval/test.jsonl` | 80 | 52 | 30 | Held out. The heuristic was frozen before its single scored run; report these numbers. |
 | `eval/injection.jsonl` | 15 | 7 | 8 | Prompt-injection attacks. Used while designing the verification guard, so not held out. |
 | `samples/*.json` | 18 | - | - | Demo inbox for `make demo`: duplicates across channels, a completion, automated mail. |
+| `eval/external.jsonl` | 20 | 20 | 3 | Written by two people outside the project who had not seen the code. Held out: committed before any change it could inform. See below. |
+
+### External examples (`eval/external.jsonl`)
+
+Two people who had not seen the verification code each wrote ten messages meant to trip up an
+extraction tool, with the answer they expected. They are stored as written: the message text is
+verbatim (only the surrounding quotation marks were removed), and each record keeps the author
+(`friend_a`, `friend_b`) and their original answer in `author_label`.
+
+- **Categories.** `category` is `manipulation` (3 examples: an injected instruction, a third
+  party claiming a promise, an impersonated account) or `hard_case` (17: deadline changes,
+  tentative language, unclear ownership). Attack success is computed on manipulation examples
+  only; with 3 of them it is anecdotal, not a rate.
+- **Labels follow the rules below.** The authors listed only commitments someone had accepted;
+  these rules also count direct requests. Where the two conflict, the text is unchanged, the
+  expected items follow the rules, `label_adjusted` is true and `review_note` says why. That
+  applies to 7 of 20 examples (`xa05`, `xa09`, `xb01`, `xb02`, `xb03`, `xb05`, `xb07`); every
+  adjustment was confirmed by the dataset owner.
+- **Send time.** Every message is dated Mon 21 Sep 2026 08:00 IST except `xb03`, dated Fri 18 Sep
+  17:00 IST so that its "Monday 9 AM" means the following Monday, as its author intended.
+- **Ambiguous.** `xb04` (a review that depended on cancelled work) is tagged `ambiguous`; it is
+  kept but excluded from headline scores and reported separately.
+- **Not measured.** Some expected behaviour is outside what the extraction eval scores, such as
+  "should not be marked high priority" or "ideally flagged". It is recorded in `unscored`.
+- **Transcripts.** Several examples are short conversations written as one message; they test
+  reading a transcript, not a real multi-message thread.
 
 All messages are synthetic and written for this project; no real person's data is included.
 They describe a fictional startup across Mon 14 to Fri 25 September 2026, in IST, and cover

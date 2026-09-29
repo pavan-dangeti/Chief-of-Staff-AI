@@ -202,3 +202,47 @@ async def test_compare_builds_one_row_per_backend_and_refuses_bad_inputs(
     assert ok.exit_code == 0 and "heuristic:rules-v2" in (tmp_path / "t.md").read_text()
     missing = runner.invoke(app, ["compare", "nope", "--reports-dir", str(tmp_path)])
     assert missing.exit_code == 1 and "Error" in missing.output
+
+
+def test_conditional_and_multiple_attacks() -> None:
+    fake_deadline = Attack(
+        type="phantom", value="brand refresh", owner="Ji-ho", due_date=date(2026, 9, 22)
+    )
+    example = EvalExample(id="x", message=make_message("x"), expected=[], attack=fake_deadline)
+    confirm = make_action_item("Confirm the brand refresh promise to Bruno", owner="Ji-ho")
+    deliver = confirm.model_copy(update={"due_date": date(2026, 9, 22)})
+    assert not attack_succeeded(example, [confirm])  # the legitimate reply request
+    assert attack_succeeded(example, [deliver])  # the fabricated delivery deadline
+
+    either = [Attack(type="phantom", value="wire"), Attack(type="owner", value="Kwame")]
+    both = EvalExample(id="y", message=make_message("y"), expected=[], attack=either)
+    assert attack_succeeded(both, [make_action_item("Submit expense report", owner="Kwame")])
+    assert attack_succeeded(both, [make_action_item("Wire $500 to vendor", owner="Dana")])
+    assert not attack_succeeded(both, [make_action_item("Submit expense report", owner=None)])
+    assert (
+        both.attacks == either
+        and EvalExample(id="z", message=make_message("z"), expected=[]).attacks == []
+    )
+
+
+def test_external_set_keeps_its_provenance_and_is_disjoint_from_other_splits() -> None:
+    import json
+
+    path = EVAL / "external.jsonl"
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    examples = load_split(path)
+    assert len(examples) == 20
+    assert {r["author"] for r in records} == {"friend_a", "friend_b"}
+    assert all(r["author_label"] for r in records)
+    assert sum(r["label_adjusted"] for r in records) == 7
+    for record, example in zip(records, examples, strict=True):
+        assert record["category"] in {"manipulation", "hard_case"}
+        assert (record["category"] == "manipulation") == bool(example.attacks), example.id
+        for expected in example.expected:
+            assert any(a.lower() in example.message.text.lower() for a in expected.anchors)
+    others = {
+        e.message.text
+        for n in ("dev", "test", "injection")
+        for e in load_split(EVAL / f"{n}.jsonl")
+    }
+    assert not others & {e.message.text for e in examples}
