@@ -11,6 +11,8 @@
 ![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+**[Live demo](https://pavan-dangeti.github.io/Chief-of-Staff-AI/)**: the real output on a synthetic sample inbox, message by message.
+
 <img src="docs/images/demo.gif" alt="Terminal demo: cos run builds a prioritized digest, cos ledger show tracks items across runs, cos eval scores the extractor" width="900">
 
 </div>
@@ -50,7 +52,7 @@ source message. It tracks items across runs until a later message reports them d
 | Provider outage | Circuit breaker cuts time to fallback from **44.8 s to 2.2 s** | [`reports/production-run.md`](reports/production-run.md) |
 | Latency, 100 messages at 400 ms per call | **190 s → 3.1 s** cold, **0.16 s** from cache | [`reports/benchmark.md`](reports/benchmark.md) |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache; zero errors | [`reports/production-run.md`](reports/production-run.md) |
-| Code quality | 311 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | CI |
+| Code quality | 313 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | CI |
 
 The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
 evaluated**: no Anthropic API access was available for this project, so no Claude numbers are
@@ -337,7 +339,7 @@ src/chief_of_staff/
 └── cli.py · api.py      interfaces
 benchmarks/              latency benchmark, provider simulator, production-style run, latency timeline
 datasets/                labeled splits, labeling guidelines, demo inbox
-docs/                    README assets rendered from real CLI runs
+docs/                    design notes, pilot guide, demo site builder, assets rendered from real runs
 tests/                   unit, property-based, contract, integration and interface tests
 ```
 

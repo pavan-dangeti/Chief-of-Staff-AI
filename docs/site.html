@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chief-of-Staff AI demo</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Slack and email in, a verified and prioritized list of commitments out. Live output on a synthetic sample inbox.">
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #1d1d1b; --muted: #5f5f5a; --line: #deded8;
+    --accent: #1f5f8b; --tint: #e8f1f8; --p0: #b3261e; --p1: #a15c00; --p2: #1f5f8b; --p3: #5f5f5a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1f1f1d; --ink: #ececea; --muted: #a7a7a1; --line: #34342f;
+      --accent: #7fb6de; --tint: #1d2a33; --p0: #f28b82; --p1: #f0b35a; --p2: #7fb6de; --p3: #a7a7a1;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color: var(--accent); }
+  header, section, footer { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 40px; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.2rem; margin: 40px 0 12px; }
+  h3 { font-size: 1rem; margin: 0 0 12px; color: var(--muted); font-weight: 600;
+       text-transform: uppercase; letter-spacing: 0.04em; }
+  .lede { font-size: 1.1rem; max-width: 760px; margin: 0 0 16px; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0 0 16px; }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 12px 16px; max-width: 760px; }
+  .note ul { margin: 4px 0; padding-left: 20px; }
+  .summary { color: var(--muted); margin: 16px 0 0; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px;
+          align-items: start; }
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .digest { order: -1; }  /* the output first on phones */
+  }
+  .col { min-width: 0; }
+  .msg, .item { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+                padding: 12px 14px; margin: 0 0 10px; scroll-margin-top: 16px; }
+  .msg:target { border-color: var(--accent); background: var(--tint); }
+  .msg p, .item p { margin: 4px 0; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 0.9rem; }
+  .outcome { font-size: 0.85rem; color: var(--accent); }
+  .head { display: flex; gap: 10px; align-items: baseline; }
+  .badge { font: 600 0.8rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 6px;
+           border-radius: 6px; border: 1px solid currentColor; flex: none; }
+  .P0 { color: var(--p0); } .P1 { color: var(--p1); } .P2 { color: var(--p2); } .P3 { color: var(--p3); }
+  .flag { font-size: 0.8rem; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+  .late { color: var(--p0); border-color: currentColor; }
+  blockquote { margin: 8px 0; padding: 6px 10px; border-left: 3px solid var(--line);
+               color: var(--muted); }
+  details { font-size: 0.9rem; color: var(--muted); }
+  summary { cursor: pointer; }
+  details ul { margin: 4px 0; padding-left: 20px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; white-space: normal; vertical-align: bottom; }
+  tbody tr:last-child td { border-bottom: none; }
+  footer { color: var(--muted); font-size: 0.9rem; padding-top: 32px; padding-bottom: 48px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Chief-of-Staff AI</h1>
+  <p class="lede">In a small company, commitments are scattered across Slack threads and inboxes, and
+  nobody owns the list. This tool reads those messages and produces one list of open commitments,
+  each with an owner, a due date, a priority with its reasons, and the exact quote it came from.</p>
+  <p class="links">
+    <a href="{{REPO}}">Source on GitHub</a>
+    <a href="{{REPO}}#evaluation">How it is evaluated</a>
+    <a href="review.html">The pilot review page</a>
+  </p>
+  <div class="note">
+    <strong>What you are looking at</strong>
+    <ul>
+      <li>A fictional startup's inbox (synthetic, written for this project; no real person's data).</li>
+      <li>The digest the tool made from it with its <strong>offline rules</strong>: no AI model and
+        no API calls, so the page is the same for everyone. The live models score higher; see the table below.</li>
+      <li>Read-only: this page is generated once per change to the project and has no server.</li>
+    </ul>
+  </div>
+  <p class="summary">As of {{AS_OF}}: {{SUMMARY}}.</p>
+</header>
+
+<section class="grid" aria-label="Input and output">
+  <div class="col">
+    <h2>Inbox (input)</h2>
+    {{INBOX}}
+  </div>
+  <div class="col digest">
+    <h2>Digest (output)</h2>
+    <h3>Open, highest priority first</h3>
+    {{OPEN}}
+    <h3>Closed by a later message</h3>
+    {{DONE}}
+  </div>
+</section>
+
+<section aria-labelledby="results">
+  <h2 id="results">How the extraction models compare</h2>
+  <p class="meta">Held-out test split of 80 labelled messages and a 15-attack prompt-injection suite.
+  F1 with 95% bootstrap interval. Cost is a list-price estimate from measured tokens; latency is
+  from shared free endpoints and is an upper bound. Details and caveats in the
+  <a href="{{REPO}}#evaluation">README</a>.</p>
+  <div class="table-wrap">{{TABLE}}</div>
+</section>
+
+<footer>
+  Built from commit <code>{{COMMIT}}</code> with <code>python docs/build_site.py</code>.
+  Offline rules only, so the same command on your machine produces the same digest.
+</footer>
+</body>
+</html>
