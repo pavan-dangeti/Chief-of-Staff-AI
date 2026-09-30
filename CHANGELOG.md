@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- NVIDIA API Catalog backend (any OpenAI-compatible chat completions endpoint), with its own
+  model, escalation model, rate limit and request options; no extra install needed.
+- Live comparison of four hosted models on the held-out test split. GLM 5.3 Flash scores item
+  F1 0.981 (95% CI 0.950–1.000), Gemini 3.5 Flash-Lite 0.931, DeepSeek V4.1 Flash 0.902 and
+  Nemotron 3 Super 0.863, against 0.848 for the offline rules. `cos compare` builds the table
+  from saved reports.
+- Provider call time and a list-price cost estimate per 1,000 messages in every evaluation
+  report, from token counts recorded with each answer and a dated price table
+  (`docs/pricing.md`).
+- Resumable live evaluations: `cos eval --cache` keeps a per-run cache, answers keep their
+  measured tokens and latency, and a run with failed messages writes no report.
+- `benchmarks/latency_timeline.py` separates endpoint queueing from generation time.
+- 30 externally written held-out examples (`datasets/eval/external.jsonl`), thread examples,
+  deadline and priority attack types, and labelling rules for sender identity and attack success.
+
+### Changed
+
+- The NVIDIA backend defaults to GLM 5.3 Flash, and `auto` prefers it over Gemini.
+
+### Fixed
+
+- HTTP 429 and 5xx responses from httpx-based providers are now retried with `Retry-After`;
+  their status code was previously not read.
+- Evaluation latency no longer includes time spent waiting for the client-side rate limiter.
+
 ## [2.0.2] - 2026-09-27
 
 ### Added
