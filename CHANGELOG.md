@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Public demo on GitHub Pages (`docs/build_site.py`, deployed by the Demo site workflow):
+  the sample inbox beside the digest the offline rules make from it, each message labelled with
+  what happened to it, the backend comparison table, and a copy of the pilot review page.
 - Real-user pilot kit: `cos pilot run` builds a self-contained review page from a participant's
   own Slack export, mbox or JSON (offline rules by default, the last 14 days); the page saves a
   label file with no message text; `cos pilot report` combines the files into precision, a
