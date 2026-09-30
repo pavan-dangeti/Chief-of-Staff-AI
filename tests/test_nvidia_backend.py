@@ -5,6 +5,7 @@ import tomllib
 from collections.abc import Callable
 from pathlib import Path
 
+import click
 import httpx
 import pytest
 from typer.testing import CliRunner
@@ -176,7 +177,8 @@ def test_incomplete_eval_writes_no_report_and_says_how_to_resume(
 
 def test_model_override_needs_a_hosted_backend() -> None:
     result = CliRunner().invoke(app, ["eval", "--backend", "heuristic", "--model", "x"])
-    assert result.exit_code != 0 and "--model needs" in result.output
+    # CI terminals get colour, and rich highlights option names inside the message.
+    assert result.exit_code != 0 and "--model needs" in click.unstyle(result.output)
 
 
 def test_bundled_price_table_matches_the_dated_pricing_doc() -> None:
