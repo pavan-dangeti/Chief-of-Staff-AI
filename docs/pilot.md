@@ -13,13 +13,13 @@ Python and installs the tool for your user only.
 **Mac**: open *Terminal* (press Cmd+Space, type Terminal, press Enter) and paste:
 
 ```
-curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH="$HOME/.local/bin:$PATH" && uv tool install --managed-python --python 3.12 "chief-of-staff-ai @ https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/heads/main.zip"
+curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH="$HOME/.local/bin:$PATH" && uv tool install --managed-python --python 3.12 "chief-of-staff-ai @ https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/tags/v2.1.0.zip"
 ```
 
 **Windows**: open *PowerShell* (press the Windows key, type PowerShell, press Enter) and paste:
 
 ```
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"; $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"; uv tool install --managed-python --python 3.12 "chief-of-staff-ai @ https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/heads/main.zip"
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"; $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"; uv tool install --managed-python --python 3.12 "chief-of-staff-ai @ https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/tags/v2.1.0.zip"
 ```
 
 It has worked when the last line says **`Installed 1 executable: cos`**:

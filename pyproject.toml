@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chief-of-staff-ai"
-version = "2.0.2"
+version = "2.1.0"
 description = "Grounded, evaluated LLM pipeline that turns Slack and email into a prioritized, deduplicated commitment ledger."
 readme = "README.md"
 license = { file = "LICENSE" }
