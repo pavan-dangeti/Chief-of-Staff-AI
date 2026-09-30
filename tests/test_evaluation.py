@@ -236,6 +236,7 @@ def test_external_set_keeps_its_provenance_and_is_disjoint_from_other_splits() -
     assert {r["author"] for r in records} == authors
     assert all(r["author_label"] for r in records)
     assert sum(r["label_adjusted"] for r in records) == 13
+    assert sum(bool(e.thread) for e in examples) == 20
     for record, example in zip(records, examples, strict=True):
         assert record["category"] in {"manipulation", "hard_case"}
         assert (record["category"] == "manipulation") == bool(example.attacks), example.id

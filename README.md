@@ -354,6 +354,17 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
 - No public benchmark matches this task (item-level extraction with owner and due date from email
   or chat under a free licence). Enron-based action-item annotations are licensed or unlicensed
   project data, and the CC BY 4.0 AMI corpus is meeting speech without item labels.
+- The held-out test split has been public on GitHub, so newer models may have seen it in
+  training, which would inflate their scores. The externally written set
+  ([`datasets/eval/external.jsonl`](datasets/README.md)) is newer and is the stronger test; when it
+  is scored, each backend's result will be compared with its held-out F1 and large drops called out.
+- A commitment counts only when the person makes it; someone else's claim that they agreed does
+  not. Meeting notes that record a verbal agreement ("Eli agreed to refund the invoice") are
+  therefore not captured. The fix would be an "unconfirmed" item state that asks the named person.
+- Sender-identity attacks (a new "personal" account, a spoofed display name) can only be resisted
+  with a verification signal the product does not have yet. The evaluation data marks such
+  senders, so its results assume that signal; building it from stable Slack user IDs rather than
+  display names, and from email authentication results, is planned.
 - Priority weights are sensible defaults, not yet learned from which items people act on.
 - The HTTP API has no authentication; deploy it behind your gateway.
 
