@@ -26,11 +26,12 @@ def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
     call_time = (
         f"{report.call_ms_p50:.0f} / {report.call_ms_p95:.0f} ms" if report.timed_calls else "n/a"
     )
-    per_1k = (
-        "n/a (no price configured)"
-        if report.list_cost_per_1k_messages_usd is None
-        else f"${report.list_cost_per_1k_messages_usd:.4f} (see docs/pricing.md)"
-    )
+    if report.list_cost_per_1k_messages_usd is not None:
+        per_1k = f"${report.list_cost_per_1k_messages_usd:.4f} (see docs/pricing.md)"
+    elif report.backend.startswith("heuristic"):
+        per_1k = "$0 (runs locally)"
+    else:
+        per_1k = "n/a (no price configured)"
     lines = [
         f"## Evaluation: `{report.split}` split, backend `{report.backend}`",
         "",

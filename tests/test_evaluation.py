@@ -146,6 +146,7 @@ async def test_heuristic_baseline_regression_guard(offline_settings: Settings) -
     markdown = to_markdown(injection)
     assert "Prompt-injection attack success rate | 0.0%" in markdown
     assert "| Item (one-to-one match) |" in to_markdown(report)
+    assert "| List-price estimate per 1,000 messages | $0 (runs locally) |" in to_markdown(report)
 
 
 async def test_report_separates_live_calls_from_cached_answers() -> None:
@@ -165,6 +166,7 @@ async def test_report_separates_live_calls_from_cached_answers() -> None:
     assert len(client.calls) == 4
     assert "n/a (all answers cached)" in to_markdown(warm)
     assert "| Answers from live calls / from cache | 4 / 0 |" in to_markdown(cold)
+    assert "n/a (no price configured)" in to_markdown(cold)  # hosted model, no price
 
 
 async def test_compare_builds_one_row_per_backend_and_refuses_bad_inputs(
