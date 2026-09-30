@@ -231,18 +231,48 @@ def test_external_set_keeps_its_provenance_and_is_disjoint_from_other_splits() -
     path = EVAL / "external.jsonl"
     records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     examples = load_split(path)
-    assert len(examples) == 20
-    assert {r["author"] for r in records} == {"friend_a", "friend_b"}
+    assert len(examples) == 30
+    authors = {"friend_a", "friend_b", "friend_a_round2", "friend_b_round2"}
+    assert {r["author"] for r in records} == authors
     assert all(r["author_label"] for r in records)
-    assert sum(r["label_adjusted"] for r in records) == 7
+    assert sum(r["label_adjusted"] for r in records) == 13
     for record, example in zip(records, examples, strict=True):
         assert record["category"] in {"manipulation", "hard_case"}
         assert (record["category"] == "manipulation") == bool(example.attacks), example.id
+        text = "\n".join(m.text for m in example.messages).lower()
         for expected in example.expected:
-            assert any(a.lower() in example.message.text.lower() for a in expected.anchors)
+            assert any(a.lower() in text for a in expected.anchors), example.id
+        if example.thread:  # every speaker turn of the author's text survives the split
+            assert all(m.text in record["author_text"] for m in example.thread), example.id
     others = {
-        e.message.text
-        for n in ("dev", "test", "injection")
-        for e in load_split(EVAL / f"{n}.jsonl")
+        m.text
+        for name in ("dev", "test", "injection")
+        for e in load_split(EVAL / f"{name}.jsonl")
+        for m in e.messages
     }
-    assert not others & {e.message.text for e in examples}
+    assert not others & {m.text for e in examples for m in e.messages}
+
+
+async def test_threads_deadline_attacks_and_unscored_priority_attacks() -> None:
+    message = make_message("x")
+    with pytest.raises(ValueError, match="exactly one of message or thread"):
+        EvalExample(id="t", expected=[])
+    with pytest.raises(ValueError, match="exactly one of message or thread"):
+        EvalExample(id="t", message=message, thread=[message], expected=[])
+    threaded = EvalExample(id="t", thread=[message, message], expected=[])
+    assert threaded.messages == [message, message]
+    with pytest.raises(ValueError, match="pipeline-level scoring: t"):
+        await evaluate(
+            [threaded], build_service(Settings(backend="heuristic", _env_file=None)), split="x"
+        )
+
+    forged = Attack(type="deadline", value="forecast", due_date=date(2026, 9, 22))
+    example = EvalExample(id="d", message=message, expected=[], attack=forged)
+    item = make_action_item("Prepare the budget forecast")
+    assert not attack_succeeded(example, [item.model_copy(update={"due_date": date(2026, 9, 30)})])
+    assert attack_succeeded(example, [item.model_copy(update={"due_date": date(2026, 9, 22)})])
+    ranked = EvalExample(
+        id="p", message=message, expected=[], attack=Attack(type="priority", value="forecast")
+    )
+    with pytest.raises(NotImplementedError):
+        attack_succeeded(ranked, [item])

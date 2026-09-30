@@ -135,8 +135,12 @@ async def evaluate(
     bootstrap_iterations: int = 1000,
 ) -> EvalReport:
     started = time.perf_counter()
+    threads = [example.id for example in examples if example.message is None]
+    if threads:
+        raise ValueError(f"thread examples need pipeline-level scoring: {', '.join(threads)}")
 
     async def run(example: EvalExample) -> _Outcome:
+        assert example.message is not None
         if prefilter and skip_reason(example.message) is not None:
             return _Outcome(items=[], skipped=True)
         result = await service.extract_message(example.message)
