@@ -8,7 +8,7 @@ import logging
 import os
 import time
 from collections.abc import Iterator, Sequence
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Any
@@ -23,6 +23,7 @@ from chief_of_staff.config import Settings
 from chief_of_staff.errors import ConfigurationError, require_extra
 from chief_of_staff.extraction.factory import build_prioritizer, build_service
 from chief_of_staff.ingest.files import load_messages
+from chief_of_staff.ingest.mbox import load_mbox
 from chief_of_staff.ingest.slack import SlackClient, load_slack_export
 from chief_of_staff.ledger import Ledger
 from chief_of_staff.models import Digest, Message, Source, Status
@@ -34,9 +35,13 @@ app = typer.Typer(add_completion=False, no_args_is_help=True, help=__doc__)
 ledger_app = typer.Typer(no_args_is_help=True, help="Inspect the persistent commitment ledger.")
 gmail_app = typer.Typer(no_args_is_help=True, help="Pull mail from Gmail (needs the gmail extra).")
 slack_app = typer.Typer(no_args_is_help=True, help="Pull channel history from the Slack Web API.")
+pilot_app = typer.Typer(
+    no_args_is_help=True, help="Real-user pilot: review page on your own data, and reports."
+)
 app.add_typer(ledger_app, name="ledger")
 app.add_typer(gmail_app, name="gmail")
 app.add_typer(slack_app, name="slack")
+app.add_typer(pilot_app, name="pilot")
 console = Console()
 errors = Console(stderr=True)
 
@@ -85,6 +90,7 @@ def run(
     slack_export: Annotated[
         Path | None, typer.Option(help="Slack workspace export directory.")
     ] = None,
+    mbox: Annotated[Path | None, typer.Option(help="Mailbox file, e.g. Gmail Takeout.")] = None,
     backend: Annotated[Backend, typer.Option(help="Extraction backend.")] = Backend.AUTO,
     output_format: Annotated[OutputFormat, typer.Option("--format")] = OutputFormat.TABLE,
     output: Annotated[Path | None, typer.Option(help="Write the digest to a file.")] = None,
@@ -104,8 +110,10 @@ def run(
         messages += load_messages(path, source=Source.EMAIL)
     if slack_export:
         messages += load_slack_export(slack_export)
+    if mbox:
+        messages += load_mbox(mbox)
     if not messages:
-        raise typer.BadParameter("provide at least one of --slack, --email or --slack-export")
+        raise typer.BadParameter("provide at least one of --slack, --email, --slack-export, --mbox")
 
     settings = _settings(backend, no_cache)
     with _user_errors():
@@ -253,6 +261,89 @@ def compare(
     if output:
         output.write_text(table, encoding="utf-8")
     typer.echo(table)
+
+
+@pilot_app.command("run")
+def pilot_run(
+    participant: Annotated[str, typer.Option(help="Your pilot code, e.g. P3. Not your name.")],
+    slack_export: Annotated[
+        Path | None, typer.Option(help="Slack workspace export directory.")
+    ] = None,
+    mbox: Annotated[Path | None, typer.Option(help="Mailbox file, e.g. Gmail Takeout.")] = None,
+    email: Annotated[list[Path] | None, typer.Option(help="Email messages JSON/JSONL.")] = None,
+    days: Annotated[int, typer.Option(min=1, help="Only messages from the last N days.")] = 14,
+    backend: Annotated[
+        Backend, typer.Option(help="heuristic (default) keeps everything on this computer.")
+    ] = Backend.HEURISTIC,
+    out: Annotated[Path, typer.Option(help="Folder for the review page.")] = Path("pilot"),
+) -> None:
+    """Find action items in your own export and write a review page to open in a browser."""
+    import uuid
+
+    from chief_of_staff.pilot import PilotRun, review_page
+
+    since = datetime.now(UTC) - timedelta(days=days)
+    messages: list[Message] = []
+    if slack_export:
+        messages += load_slack_export(slack_export)
+    for path in email or []:
+        messages += load_messages(path, source=Source.EMAIL)
+    if mbox:
+        messages += load_mbox(mbox, since=since)
+    messages = [m for m in messages if m.timestamp >= since]
+    if not messages:
+        raise typer.BadParameter(f"no messages from the last {days} days in the files given")
+    if backend is not Backend.HEURISTIC:
+        errors.print(
+            f"[yellow]Note:[/] with --backend {backend.value}, message text is sent to that "
+            "provider after names, emails, phone numbers and secrets are masked.",
+            soft_wrap=True,
+        )
+    settings = _settings(backend, no_cache=False)
+    with _user_errors():
+        service = build_service(settings, fallback=False)
+        try:
+            digest = asyncio.run(
+                _run(service, build_prioritizer(settings), messages, None, False, True)
+            )
+        finally:
+            service.close()
+        run = PilotRun(
+            participant=participant,
+            run_id=uuid.uuid4().hex[:8],
+            backend=service.primary_label,
+            window_days=days,
+            messages_scanned=len(messages),
+            messages_extracted=digest.stats.messages_total - digest.stats.messages_skipped,
+        )
+    out.mkdir(parents=True, exist_ok=True)
+    page = out / f"review-{participant}-{run.run_id}.html"
+    page.write_text(review_page(digest, run), encoding="utf-8")
+    found = len(digest.open_items) + len(digest.resolved_items) + len(digest.unmatched_completions)
+    console.print(
+        f"Found {found} items in {len(messages)} messages. Open this file in your browser:"
+    )
+    typer.echo(page.resolve())  # unwrapped, so the path can be copied as-is
+
+
+@pilot_app.command("report")
+def pilot_report_command(
+    files: Annotated[list[Path], typer.Argument(help="Label files the participants sent back.")],
+    output: Annotated[Path | None, typer.Option(help="Write the Markdown report here.")] = None,
+) -> None:
+    """Combine participants' label files into precision, recall estimate and per-person rows."""
+    from pydantic import ValidationError
+
+    from chief_of_staff.pilot import load_exports, pilot_report
+
+    try:
+        report = pilot_report(load_exports(files))
+    except (OSError, ValidationError) as exc:
+        errors.print(f"[red]Error:[/] {escape(str(exc))}", soft_wrap=True)
+        raise typer.Exit(1) from exc
+    if output:
+        output.write_text(report, encoding="utf-8")
+    typer.echo(report)
 
 
 @ledger_app.command("show")
