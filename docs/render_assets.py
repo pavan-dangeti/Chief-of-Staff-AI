@@ -135,8 +135,8 @@ def draw_box(
         canvas.rectangle((x0, y0, x1 - 1, y1 - 1), fill=fill)
 
 
-def draw(screen: Screen, title: str) -> Image.Image:
-    width, height = int(PAD * 2 + COLS * CELL), BAR + PAD * 2 + ROWS * LINE
+def draw(screen: Screen, title: str, rows: int = ROWS) -> Image.Image:
+    width, height = int(PAD * 2 + COLS * CELL), BAR + PAD * 2 + rows * LINE
     image = Image.new("RGB", (width, height), (1, 4, 9))
     canvas = ImageDraw.Draw(image)
     canvas.rounded_rectangle((0, 0, width - 1, height - 1), radius=12, fill=THEME.background_color)
@@ -146,7 +146,7 @@ def draw(screen: Screen, title: str) -> Image.Image:
         canvas.ellipse((16 + index * 20, 13, 28 + index * 20, 25), fill=dot)
     canvas.text((width / 2, BAR / 2), title, fill=(139, 148, 158), font=REGULAR, anchor="mm")
     foreground = THEME.foreground_color
-    for row, segments in enumerate(screen[-ROWS:]):
+    for row, segments in enumerate(screen[-rows:]):
         column = 0
         y = BAR + PAD + row * LINE
         for segment in segments:
@@ -218,5 +218,36 @@ def main() -> None:
     print(f"{len(frames)} frames -> {OUT}")
 
 
+def render_install() -> None:
+    """Run the macOS install line from docs/pilot.md in an empty home directory, for real.
+
+    Needs macOS and network access. The throwaway home directory is shown as ``~``.
+    """
+    guide = (ROOT / "docs" / "pilot.md").read_text(encoding="utf-8").splitlines()
+    command = next(line for line in guide if line.startswith("curl -LsSf https://astral.sh/uv"))
+    with tempfile.TemporaryDirectory() as home:
+        env = {"HOME": home, "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "TERM": "xterm-256color"}
+        result = subprocess.run(
+            ["/bin/zsh", "-c", command],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        output = result.stdout.replace(home, "~")
+    shown = lines(Text.from_ansi(output))
+    head, tail = shown[:6], shown[-2:]
+    hidden = lines(Text(f"  ... {len(shown) - 8} lines of package names not shown", style="dim"))
+    screen = lines(Text("$ ", style=PROMPT) + Text(command)) + head + hidden + tail
+    draw(screen, "Terminal", rows=len(screen)).save(OUT / "install.png", optimize=True)
+    print(f"{len(screen)} lines -> {OUT / 'install.png'}")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if "--install" in sys.argv:
+        render_install()
+    else:
+        main()

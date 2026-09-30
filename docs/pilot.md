@@ -1,19 +1,34 @@
 # Pilot guide
 
 This guide is for people taking part in the two-week pilot. Please read the
-[privacy and consent note](pilot-privacy.md) first. You will need about 20 minutes to set up and
+[privacy and consent note](pilot-privacy.md) first. You will need about 10 minutes to set up and
 10 to 15 minutes each time you review.
 
-## 1. Install (once)
+## 1. Install (once, about a minute)
 
-You need Python 3.11 or newer ([python.org/downloads](https://www.python.org/downloads/)). Then open
-Terminal (macOS) or PowerShell (Windows) and run:
+Copy the one line for your computer, paste it, and press Enter. You do not need Python, git or
+administrator rights: the installer ([uv](https://docs.astral.sh/uv/)) fetches its own copy of
+Python and installs the tool for your user only.
 
-```bash
-python3 -m venv cos-pilot
-source cos-pilot/bin/activate        # Windows: cos-pilot\Scripts\activate
-pip install "git+https://github.com/pavan-dangeti/Chief-of-Staff-AI.git"
+**Mac**: open *Terminal* (press Cmd+Space, type Terminal, press Enter) and paste:
+
 ```
+curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH="$HOME/.local/bin:$PATH" && uv tool install --managed-python --python 3.12 "chief-of-staff-ai @ https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/heads/main.zip"
+```
+
+**Windows**: open *PowerShell* (press the Windows key, type PowerShell, press Enter) and paste:
+
+```
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"; $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"; uv tool install --managed-python --python 3.12 "chief-of-staff-ai @ https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/heads/main.zip"
+```
+
+It has worked when the last line says **`Installed 1 executable: cos`**:
+
+![Terminal after the install command: uv installs, then "Installed 1 executable: cos"](images/install.png)
+
+The `cos` command is ready in that window straight away, and in any new window you open. Both
+lines are tested on fresh macOS and Windows machines on every change to the project. To remove
+everything later: `uv tool uninstall chief-of-staff-ai`.
 
 ## 2. Export your messages
 
