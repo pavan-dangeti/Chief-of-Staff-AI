@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Real-user pilot kit: `cos pilot run` builds a self-contained review page from a participant's
+  own Slack export, mbox or JSON (offline rules by default, the last 14 days); the page saves a
+  label file with no message text; `cos pilot report` combines the files into precision, a
+  recall estimate and per-participant rows with Wilson intervals. Participant guide and privacy
+  and consent note in `docs/`.
+- mbox import (for example Gmail Takeout), also available as `cos run --mbox`.
 - NVIDIA API Catalog backend (any OpenAI-compatible chat completions endpoint), with its own
   model, escalation model, rate limit and request options; no extra install needed.
 - Live comparison of four hosted models on the held-out test split. GLM 5.3 Flash scores item

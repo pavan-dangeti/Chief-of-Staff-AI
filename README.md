@@ -50,7 +50,7 @@ source message. It tracks items across runs until a later message reports them d
 | Provider outage | Circuit breaker cuts time to fallback from **44.8 s to 2.2 s** | [`reports/production-run.md`](reports/production-run.md) |
 | Latency, 100 messages at 400 ms per call | **190 s → 3.1 s** cold, **0.16 s** from cache | [`reports/benchmark.md`](reports/benchmark.md) |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache; zero errors | [`reports/production-run.md`](reports/production-run.md) |
-| Code quality | 303 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | CI |
+| Code quality | 311 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | CI |
 
 The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
 evaluated**: no Anthropic API access was available for this project, so no Claude numbers are
@@ -211,6 +211,26 @@ still took 8–19 s ([`reports/latency-deepseek-v4.1-flash.md`](reports/latency-
 `python benchmarks/latency_timeline.py`). Treat these p95s as an upper bound on what a paid,
 dedicated deployment would see, not an estimate of it.
 
+## Real-user pilot
+
+A kit for a two-week pilot on participants' own messages
+([participant guide](docs/pilot.md), [privacy and consent note](docs/pilot-privacy.md)):
+
+- `cos pilot run` reads a Slack export, a Gmail Takeout `.mbox` or JSON, keeps the last 14 days,
+  and runs the **offline rules by default**; an AI backend is used only if the participant asks
+  for one, after PII masking.
+- It writes one self-contained HTML page. The participant marks each item as a real task with
+  details right, a real task with details wrong, or not a task, and adds the tasks it missed. The
+  page makes no network requests and saves progress in the browser.
+- **Save labels** downloads a JSON file with labels and coarse metadata only: no message text,
+  names, addresses, subjects, channels or message dates. `cos pilot report` rejects any file with
+  extra fields.
+- `cos pilot report` gives precision, the share of real tasks with owner and due date right, and a
+  recall estimate (an upper bound, since people only add the misses they notice), per participant
+  and pooled, with Wilson 95% intervals.
+
+No pilot has run yet, so there are no real-user results.
+
 ## Production-style run
 
 [`benchmarks/production_run.py`](benchmarks/production_run.py) mocks nothing inside the
@@ -256,12 +276,14 @@ Optional extras keep the base install small: `anthropic`, `gemini`, `graph` (Lan
 
 | Command | Purpose |
 |---|---|
-| `cos run --slack F --email F [--slack-export DIR]` | Build a digest: `--format table\|markdown\|json`, `--output`, `--as-of`, `--graph` |
+| `cos run --slack F --email F [--slack-export DIR] [--mbox F]` | Build a digest: `--format table\|markdown\|json`, `--output`, `--as-of`, `--graph` |
 | `cos run ... --ledger .cos/ledger.sqlite` | Merge results into the persistent ledger |
 | `cos run ... --policy config/priority_policy.example.toml` | Apply company-specific priority weights |
 | `cos ledger show [--status open\|done\|all]` | List tracked commitments and flag overdue ones |
 | `cos eval --split test\|dev\|injection` | Score a backend with confidence intervals |
 | `cos compare heuristic gemini ...` | One comparison table from saved evaluation reports |
+| `cos pilot run --participant P3 --mbox F` | Pilot: find items in your own export, write a local review page |
+| `cos pilot report FILES...` | Pilot: combine returned label files into precision, recall estimate, per-person rows |
 | `cos slack pull --channel C0123:eng` | Fetch recent channel history (`SLACK_BOT_TOKEN`) |
 | `cos gmail pull` | Fetch recent mail via read-only OAuth into git-ignored `data/private/` |
 | `cos serve` | Start the HTTP API |

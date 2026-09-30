@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Review your action items</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #1d1d1b; --muted: #5f5f5a; --line: #deded8;
+    --accent: #1f5f8b; --good: #2e7d32; --warn: #a15c00; --bad: #b3261e; --focus: #1f5f8b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1f1f1d; --ink: #ececea; --muted: #a7a7a1; --line: #34342f;
+      --accent: #7fb6de; --good: #81c784; --warn: #f0b35a; --bad: #f28b82; --focus: #7fb6de;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 96px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 32px 0 8px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  .note { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 12px 16px; margin: 16px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 16px; margin: 12px 0; }
+  .card.done { border-left: 5px solid var(--accent); }
+  .action { font-weight: 600; font-size: 1.05rem; margin: 0 0 6px; }
+  .meta { color: var(--muted); font-size: 0.9rem; margin: 0 0 8px; }
+  blockquote { margin: 8px 0 12px; padding: 8px 12px; border-left: 3px solid var(--line);
+               color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+  button, select, input { font: inherit; }
+  button { border: 1px solid var(--line); background: var(--card); color: var(--ink);
+           border-radius: 8px; padding: 8px 12px; cursor: pointer; min-height: 44px; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--focus);
+           outline-offset: 2px; }
+  button[aria-pressed="true"][data-label="correct"] { border-color: var(--good); color: var(--good); font-weight: 600; }
+  button[aria-pressed="true"][data-label="wrong_details"] { border-color: var(--warn); color: var(--warn); font-weight: 600; }
+  button[aria-pressed="true"][data-label="not_a_task"] { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+  .primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);
+         border-top: 1px solid var(--line); padding: 12px 16px; }
+  .bar div { max-width: 760px; margin: 0 auto; display: flex; gap: 12px; align-items: center;
+             justify-content: space-between; flex-wrap: wrap; }
+  .missed { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .missed input { grid-column: 1 / -1; }
+  select, input { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--card);
+                  color: var(--ink); min-height: 44px; width: 100%; }
+  ul.list { padding-left: 20px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Review your action items</h1>
+  <p class="muted" id="summary"></p>
+  <div class="note">
+    <p><strong>Everything here stays on your computer.</strong> This page does not connect to the
+    internet. When you press <em>Save labels</em>, it downloads a small file containing only your
+    answers and counts, with no message text, names or subjects. That file is the only thing you
+    send back.</p>
+    <p>For each item, choose one answer. Your progress is saved in this browser, so you can close
+    the page and come back.</p>
+  </div>
+
+  <section aria-labelledby="items-heading">
+    <h2 id="items-heading">Items the tool found</h2>
+    <p class="muted">"Real task" means someone really has to do this. Pick "details wrong" if it is
+    a real task but the owner or due date is wrong.</p>
+    <div id="items"></div>
+  </section>
+
+  <section aria-labelledby="missed-heading">
+    <h2 id="missed-heading">Tasks the tool missed</h2>
+    <p class="muted">Add any real task from these messages that is not listed above. The note is
+    only for you: it is not included in the file you send.</p>
+    <form id="missed-form" class="missed card">
+      <label><span class="sr">Kind</span>
+        <select name="kind">
+          <option value="request">Someone asked for something</option>
+          <option value="commitment">Someone promised something</option>
+          <option value="completion">Someone reported something done</option>
+        </select>
+      </label>
+      <label><span class="sr">Where</span>
+        <select name="source">
+          <option value="email">Email</option>
+          <option value="slack">Slack</option>
+        </select>
+      </label>
+      <input name="note" type="text" maxlength="200" placeholder="Note for yourself (optional, not sent)" aria-label="Note for yourself, not sent">
+      <button type="submit">Add missed task</button>
+    </form>
+    <ul class="list" id="missed-list"></ul>
+  </section>
+</main>
+
+<div class="bar" role="region" aria-label="Progress">
+  <div>
+    <span id="progress" aria-live="polite"></span>
+    <button class="primary" id="save" type="button">Save labels</button>
+  </div>
+</div>
+
+<script type="application/json" id="pilot-data">__PILOT_DATA__</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("pilot-data").textContent);
+  const run = data.run;
+  const key = "cos-pilot-" + run.run_id;
+  const CHOICES = [
+    ["correct", "Real task, details right"],
+    ["wrong_details", "Real task, details wrong"],
+    ["not_a_task", "Not a task"],
+  ];
+  const KINDS = { request: "Asked for", commitment: "Promised", completion: "Reported done" };
+
+  let state = { labels: {}, missed: [] };
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (saved && typeof saved === "object") state = { labels: saved.labels || {}, missed: saved.missed || [] };
+  } catch (e) { /* private window or blocked storage: start fresh */ }
+
+  function persist() {
+    try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) { /* not fatal */ }
+    render();
+  }
+
+  function el(tag, props, text) {
+    const node = document.createElement(tag);
+    Object.assign(node, props || {});
+    if (text !== undefined) node.textContent = text;  // never innerHTML: message text is untrusted
+    return node;
+  }
+
+  function renderItems() {
+    const box = document.getElementById("items");
+    box.replaceChildren();
+    if (!data.items.length) {
+      box.append(el("p", { className: "muted" }, "The tool found no items in these messages."));
+    }
+    data.items.forEach((entry, index) => {
+      const id = entry.export.item;
+      const d = entry.display;
+      const card = el("article", { className: "card" + (d.status === "open" ? "" : " done") });
+      card.setAttribute("aria-labelledby", "a-" + id);
+      card.append(el("p", { className: "action", id: "a-" + id }, (index + 1) + ". " + d.action));
+      const bits = [
+        "Owner: " + (d.owner || "not named"),
+        "Due: " + (d.due || "no date"),
+        d.priority ? "Priority: " + d.priority : null,
+        d.status !== "open" ? "Status: " + d.status : null,
+      ].filter(Boolean);
+      card.append(el("p", { className: "meta" }, bits.join(" · ")));
+      card.append(el("blockquote", {}, d.evidence));
+      card.append(el("p", { className: "meta" },
+        "From " + d.sender + (d.where ? " in " + d.where : "") + ", " + d.when));
+      const group = el("div", { className: "choices", role: "group" });
+      group.setAttribute("aria-label", "Your answer for item " + (index + 1));
+      CHOICES.forEach(([value, label]) => {
+        const button = el("button", { type: "button" }, label);
+        button.dataset.label = value;
+        button.setAttribute("aria-pressed", String(state.labels[id] === value));
+        button.addEventListener("click", () => {
+          if (state.labels[id] === value) delete state.labels[id];
+          else state.labels[id] = value;
+          persist();
+          document.querySelector(`[data-item="${id}"] [data-label="${value}"]`)?.focus();
+        });
+        group.append(button);
+      });
+      card.dataset.item = id;
+      card.append(group);
+      box.append(card);
+    });
+  }
+
+  function renderMissed() {
+    const list = document.getElementById("missed-list");
+    list.replaceChildren();
+    state.missed.forEach((m, i) => {
+      const row = el("li", {}, KINDS[m.kind] + " (" + m.source + ")" + (m.note ? ": " + m.note : "") + " ");
+      const remove = el("button", { type: "button" }, "Remove");
+      remove.setAttribute("aria-label", "Remove missed task " + (i + 1));
+      remove.addEventListener("click", () => { state.missed.splice(i, 1); persist(); });
+      row.append(remove);
+      list.append(row);
+    });
+  }
+
+  function render() {
+    const done = data.items.filter(i => state.labels[i.export.item]).length;
+    document.getElementById("summary").textContent =
+      `Participant ${run.participant} · ${run.messages_scanned} messages from the last ` +
+      `${run.window_days} days · ${data.items.length} items found`;
+    document.getElementById("progress").textContent =
+      `${done} of ${data.items.length} reviewed · ${state.missed.length} missed added`;
+    renderItems();
+    renderMissed();
+  }
+
+  document.getElementById("missed-form").addEventListener("submit", event => {
+    event.preventDefault();
+    const form = event.target;
+    state.missed.push({ kind: form.kind.value, source: form.source.value, note: form.note.value.trim() });
+    form.note.value = "";
+    persist();
+  });
+
+  document.getElementById("save").addEventListener("click", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const exported = Object.assign({}, run, {
+      exported_on: today,
+      // Only the pre-built metadata record plus the answer; the note and message text stay here.
+      items: data.items.map(i => Object.assign({}, i.export, { label: state.labels[i.export.item] || null })),
+      missed: state.missed.map(m => ({ kind: m.kind, source: m.source })),
+    });
+    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+    const link = el("a", { href: URL.createObjectURL(blob),
+                           download: `pilot-${run.participant}-${run.run_id}.json` });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
