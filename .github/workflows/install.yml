@@ -27,6 +27,9 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          # Runners already have ~/.local/bin on PATH, which makes uv's installer skip writing the
+          # shell profile. A fresh Mac does not, so start from its PATH.
+          PATH=$(printf '%s' "$PATH" | tr ':' '\n' | grep -vx "$HOME/.local/bin" | paste -sd: -)
           line=$(grep -m1 '^curl -LsSf https://astral.sh/uv/install.sh' docs/pilot.md)
           test -n "$line"
           eval "${line//$DOC_URL/$ARCHIVE}"
