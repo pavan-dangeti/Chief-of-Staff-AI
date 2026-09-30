@@ -1,0 +1,62 @@
+name: Install
+
+# Runs the one-command install from docs/pilot.md, read from the doc itself, on clean macOS and
+# Windows runners, then runs the pilot command on the bundled sample inbox.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  one-command-install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # The doc installs from main; test the commit under review instead.
+      DOC_URL: https://github.com/pavan-dangeti/Chief-of-Staff-AI/archive/refs/heads/main.zip
+      ARCHIVE: https://github.com/${{ github.repository }}/archive/${{ github.event.pull_request.head.sha || github.sha }}.zip
+    steps:
+      - uses: actions/checkout@v4 # only for docs/pilot.md and the sample inbox, not the install
+
+      - name: Install as docs/pilot.md says (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          line=$(grep -m1 '^curl -LsSf https://astral.sh/uv/install.sh' docs/pilot.md)
+          test -n "$line"
+          eval "${line//$DOC_URL/$ARCHIVE}"
+          command -v cos
+          cos --help > /dev/null
+          cos pilot run --participant CI --email datasets/samples/email.json --days 100000 --out pilot
+          ls pilot/review-CI-*.html
+
+      - name: A new terminal window finds cos (macOS)
+        if: runner.os == 'macOS'
+        run: env -i HOME="$HOME" PATH=/usr/bin:/bin TERM=xterm /bin/zsh -lic 'command -v cos'
+
+      - name: Install as docs/pilot.md says (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $line = (Select-String -Path docs/pilot.md -Pattern '^powershell -ExecutionPolicy ByPass' | Select-Object -First 1).Line
+          if (-not $line) { throw "install command not found in docs/pilot.md" }
+          Invoke-Expression $line.Replace($env:DOC_URL, $env:ARCHIVE)
+          if ($LASTEXITCODE -ne 0) { throw "install failed" }
+          Get-Command cos
+          cos --help | Out-Null
+          cos pilot run --participant CI --email datasets/samples/email.json --days 100000 --out pilot
+          if ($LASTEXITCODE -ne 0) { throw "pilot run failed" }
+          Get-ChildItem pilot/review-CI-*.html
+
+      - name: A new terminal window finds cos (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # A new window starts from the saved machine and user PATH, not this session's.
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          Get-Command cos
