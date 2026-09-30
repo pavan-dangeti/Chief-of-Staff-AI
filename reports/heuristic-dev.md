@@ -1,6 +1,6 @@
 ## Evaluation: `dev` split, backend `heuristic:rules-v2`
 
-70 examples, prompt v2.1.0, run 2026-09-27 11:41 UTC in 0.05s.
+70 examples, prompt v2.1.0, run 2026-09-29 20:39 UTC in 0.07s.
 
 | Level | Precision | Recall | F1 | F1 95% CI | TP | FP | FN |
 |---|---|---|---|---|---|---|---|
@@ -22,6 +22,9 @@
 | Latency p50 / p95, live calls only | 0.1 / 0.2 ms |
 | Tokens in / out | 0 / 0 |
 | Cost | n/a |
+| Provider call time p50 / p95 (0 timed answers) | n/a |
+| Recorded tokens in / out, all answers | 0 / 0 |
+| List-price estimate per 1,000 messages | n/a (no price configured) |
 
 ### Error analysis (2 examples, first 2)
 

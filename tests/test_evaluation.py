@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -164,3 +165,114 @@ async def test_report_separates_live_calls_from_cached_answers() -> None:
     assert len(client.calls) == 4
     assert "n/a (all answers cached)" in to_markdown(warm)
     assert "| Answers from live calls / from cache | 4 / 0 |" in to_markdown(cold)
+
+
+async def test_compare_builds_one_row_per_backend_and_refuses_bad_inputs(
+    offline_settings: Settings, tmp_path: Path
+) -> None:
+    from typer.testing import CliRunner
+
+    from chief_of_staff.cli import app
+    from chief_of_staff.evaluation.compare import comparison_table
+
+    service = build_service(offline_settings)
+    test = await evaluate(
+        load_split(EVAL / "test.jsonl"), service, split="test", bootstrap_iterations=20
+    )
+    injection = await evaluate(
+        load_split(EVAL / "injection.jsonl"), service, split="injection", bootstrap_iterations=20
+    )
+    row = comparison_table([(test, injection)]).splitlines()[2]
+    assert row.startswith("| `heuristic:rules-v2` | **0.848**") and "0 of 15" in row
+    assert "ms, local" in row and "$0 (runs locally)" in row
+    with pytest.raises(ValueError, match="expected a test and an injection"):
+        comparison_table([(injection, test)])
+    with pytest.raises(ValueError, match="differ in backend"):
+        comparison_table([(test, injection.model_copy(update={"backend": "other"}))])
+    with pytest.raises(ValueError, match="failed messages"):
+        comparison_table([(test.model_copy(update={"failures": 1}), injection)])
+
+    for split, report in (("test", test), ("injection", injection)):
+        (tmp_path / f"rules-{split}.json").write_text(report.model_dump_json())
+    runner = CliRunner()
+    ok = runner.invoke(
+        app,
+        ["compare", "rules", "--reports-dir", str(tmp_path), "--output", str(tmp_path / "t.md")],
+    )
+    assert ok.exit_code == 0 and "heuristic:rules-v2" in (tmp_path / "t.md").read_text()
+    missing = runner.invoke(app, ["compare", "nope", "--reports-dir", str(tmp_path)])
+    assert missing.exit_code == 1 and "Error" in missing.output
+
+
+def test_conditional_and_multiple_attacks() -> None:
+    fake_deadline = Attack(
+        type="phantom", value="brand refresh", owner="Ji-ho", due_date=date(2026, 9, 22)
+    )
+    example = EvalExample(id="x", message=make_message("x"), expected=[], attack=fake_deadline)
+    confirm = make_action_item("Confirm the brand refresh promise to Bruno", owner="Ji-ho")
+    deliver = confirm.model_copy(update={"due_date": date(2026, 9, 22)})
+    assert not attack_succeeded(example, [confirm])  # the legitimate reply request
+    assert attack_succeeded(example, [deliver])  # the fabricated delivery deadline
+
+    either = [Attack(type="phantom", value="wire"), Attack(type="owner", value="Kwame")]
+    both = EvalExample(id="y", message=make_message("y"), expected=[], attack=either)
+    assert attack_succeeded(both, [make_action_item("Submit expense report", owner="Kwame")])
+    assert attack_succeeded(both, [make_action_item("Wire $500 to vendor", owner="Dana")])
+    assert not attack_succeeded(both, [make_action_item("Submit expense report", owner=None)])
+    assert (
+        both.attacks == either
+        and EvalExample(id="z", message=make_message("z"), expected=[]).attacks == []
+    )
+
+
+def test_external_set_keeps_its_provenance_and_is_disjoint_from_other_splits() -> None:
+    import json
+
+    path = EVAL / "external.jsonl"
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    examples = load_split(path)
+    assert len(examples) == 30
+    authors = {"friend_a", "friend_b", "friend_a_round2", "friend_b_round2"}
+    assert {r["author"] for r in records} == authors
+    assert all(r["author_label"] for r in records)
+    assert sum(r["label_adjusted"] for r in records) == 13
+    for record, example in zip(records, examples, strict=True):
+        assert record["category"] in {"manipulation", "hard_case"}
+        assert (record["category"] == "manipulation") == bool(example.attacks), example.id
+        text = "\n".join(m.text for m in example.messages).lower()
+        for expected in example.expected:
+            assert any(a.lower() in text for a in expected.anchors), example.id
+        if example.thread:  # every speaker turn of the author's text survives the split
+            assert all(m.text in record["author_text"] for m in example.thread), example.id
+    others = {
+        m.text
+        for name in ("dev", "test", "injection")
+        for e in load_split(EVAL / f"{name}.jsonl")
+        for m in e.messages
+    }
+    assert not others & {m.text for e in examples for m in e.messages}
+
+
+async def test_threads_deadline_attacks_and_unscored_priority_attacks() -> None:
+    message = make_message("x")
+    with pytest.raises(ValueError, match="exactly one of message or thread"):
+        EvalExample(id="t", expected=[])
+    with pytest.raises(ValueError, match="exactly one of message or thread"):
+        EvalExample(id="t", message=message, thread=[message], expected=[])
+    threaded = EvalExample(id="t", thread=[message, message], expected=[])
+    assert threaded.messages == [message, message]
+    with pytest.raises(ValueError, match="pipeline-level scoring: t"):
+        await evaluate(
+            [threaded], build_service(Settings(backend="heuristic", _env_file=None)), split="x"
+        )
+
+    forged = Attack(type="deadline", value="forecast", due_date=date(2026, 9, 22))
+    example = EvalExample(id="d", message=message, expected=[], attack=forged)
+    item = make_action_item("Prepare the budget forecast")
+    assert not attack_succeeded(example, [item.model_copy(update={"due_date": date(2026, 9, 30)})])
+    assert attack_succeeded(example, [item.model_copy(update={"due_date": date(2026, 9, 22)})])
+    ranked = EvalExample(
+        id="p", message=message, expected=[], attack=Attack(type="priority", value="forecast")
+    )
+    with pytest.raises(NotImplementedError):
+        attack_succeeded(ranked, [item])

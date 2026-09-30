@@ -37,6 +37,10 @@ class _Outcome(NamedTuple):
     input_tokens: int = 0
     output_tokens: int = 0
     cost_usd: float | None = None
+    call_ms: float = 0.0
+    recorded_input_tokens: int = 0
+    recorded_output_tokens: int = 0
+    list_cost_usd: float | None = None
 
 
 class PRF(BaseModel):
@@ -81,6 +85,14 @@ class EvalReport(BaseModel):
     input_tokens: int
     output_tokens: int
     cost_usd: float | None
+    # From usage recorded when each answer was produced (live or resumed from the run cache).
+    call_ms_p50: float = 0.0
+    call_ms_p95: float = 0.0
+    timed_calls: int = 0
+    recorded_input_tokens: int = 0
+    recorded_output_tokens: int = 0
+    list_cost_usd: float | None = None
+    list_cost_per_1k_messages_usd: float | None = None
     wall_time_s: float
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     results: list[ExampleResult]
@@ -123,8 +135,12 @@ async def evaluate(
     bootstrap_iterations: int = 1000,
 ) -> EvalReport:
     started = time.perf_counter()
+    threads = [example.id for example in examples if example.message is None]
+    if threads:
+        raise ValueError(f"thread examples need pipeline-level scoring: {', '.join(threads)}")
 
     async def run(example: EvalExample) -> _Outcome:
+        assert example.message is not None
         if prefilter and skip_reason(example.message) is not None:
             return _Outcome(items=[], skipped=True)
         result = await service.extract_message(example.message)
@@ -138,6 +154,10 @@ async def evaluate(
             input_tokens=trace.input_tokens,
             output_tokens=trace.output_tokens,
             cost_usd=trace.cost_usd,
+            call_ms=trace.call_ms,
+            recorded_input_tokens=trace.recorded_input_tokens,
+            recorded_output_tokens=trace.recorded_output_tokens,
+            list_cost_usd=trace.list_cost_usd,
         )
 
     outputs = await asyncio.gather(*(run(example) for example in examples))
@@ -173,6 +193,10 @@ async def evaluate(
     live = [o for o in outputs if not o.skipped and not o.cache_hit]
     latencies = [o.latency_ms for o in live]
     costs = [o.cost_usd for o in outputs if o.cost_usd is not None]
+    # Calls cached before timing was recorded carry 0 ms and are left out rather than counted.
+    call_times = [o.call_ms for o in outputs if o.call_ms > 0]
+    list_costs = [o.list_cost_usd for o in outputs if o.list_cost_usd is not None]
+    list_cost = round(sum(list_costs), 6) if list_costs else None
     return EvalReport(
         split=split,
         backend=service.primary_label,
@@ -195,6 +219,18 @@ async def evaluate(
         input_tokens=sum(o.input_tokens for o in outputs),
         output_tokens=sum(o.output_tokens for o in outputs),
         cost_usd=round(sum(costs), 6) if costs else None,
+        call_ms_p50=round(percentile(call_times, 50), 2),
+        call_ms_p95=round(percentile(call_times, 95), 2),
+        timed_calls=len(call_times),
+        recorded_input_tokens=sum(o.recorded_input_tokens for o in outputs),
+        recorded_output_tokens=sum(o.recorded_output_tokens for o in outputs),
+        list_cost_usd=list_cost,
+        # Per 1,000 messages ingested: prefilter-skipped messages count, at zero cost.
+        list_cost_per_1k_messages_usd=(
+            round(list_cost / len(examples) * 1000, 4)
+            if list_cost is not None and examples
+            else None
+        ),
         wall_time_s=round(time.perf_counter() - started, 3),
         results=results,
     )

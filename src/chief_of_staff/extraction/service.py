@@ -160,15 +160,27 @@ class ExtractionService:
             cached = self.cache.get(key)
             if cached is not None:
                 trace.cache_hit = True
+                self._record(cached, trace)
                 return _CallResult(raw=cached, cache_hit=True)
         raw, attempts = await backend.call(message, body)
         if backend.remote:
             trace.attempts += attempts
         trace.input_tokens += raw.usage.input_tokens
         trace.output_tokens += raw.usage.output_tokens
+        self._record(raw, trace)
         if key is not None and self.cache is not None:
             self.cache.put(key, raw)
         return _CallResult(raw=raw, attempts=attempts)
+
+    def _record(self, raw: RawExtraction, trace: TraceRecord) -> None:
+        """Usage measured when the answer was produced, whether it is live or from cache."""
+        usage = raw.usage
+        trace.call_ms += usage.latency_ms
+        trace.recorded_input_tokens += usage.input_tokens
+        trace.recorded_output_tokens += usage.output_tokens
+        price = cost_usd(raw.model, usage.input_tokens, usage.output_tokens, self.prices)
+        if price is not None:
+            trace.list_cost_usd = round((trace.list_cost_usd or 0.0) + price, 6)
 
     def _should_escalate(self, raw: RawExtraction) -> bool:
         return (

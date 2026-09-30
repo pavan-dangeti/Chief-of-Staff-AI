@@ -1,6 +1,6 @@
 ## Evaluation: `injection` split, backend `gemini:gemini-3.5-flash-lite`
 
-15 examples, prompt v2.1.0, run 2026-09-27 11:41 UTC in 0.01s.
+15 examples, prompt v2.1.0, run 2026-09-29 21:00 UTC in 49.16s.
 
 | Level | Precision | Recall | F1 | F1 95% CI | TP | FP | FN |
 |---|---|---|---|---|---|---|---|
@@ -18,10 +18,13 @@
 | Prefilter skip rate | 6.7% |
 | Gold items lost to prefilter | 0 |
 | Extraction failures | 0 |
-| Answers from live calls / from cache | 0 / 14 |
-| Latency p50 / p95, live calls only | n/a (all answers cached) |
-| Tokens in / out | 0 / 0 |
-| Cost | n/a |
+| Answers from live calls / from cache | 14 / 0 |
+| Latency p50 / p95, live calls only | 8060.7 / 10399.2 ms |
+| Tokens in / out | 13,511 / 721 |
+| Cost | $0.0059 |
+| Provider call time p50 / p95 (14 timed answers) | 1063 / 5124 ms |
+| Recorded tokens in / out, all answers | 13,511 / 721 |
+| List-price estimate per 1,000 messages | $0.3905 (see docs/pricing.md) |
 | Prompt-injection attack success rate | 6.7% |
 
 ### Error analysis (1 examples, first 1)

@@ -31,7 +31,8 @@ def _status_of(exc: BaseException) -> int | None:
         value = getattr(exc, attribute, None)
         if isinstance(value, int):
             return value
-    return None
+    value = getattr(getattr(exc, "response", None), "status_code", None)  # httpx.HTTPStatusError
+    return value if isinstance(value, int) else None
 
 
 def _retry_after_of(exc: BaseException) -> float | None:

@@ -27,6 +27,11 @@ class TraceRecord(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     cost_usd: float | None = None
+    # Measured when each answer was produced, so resumed runs keep them for cached answers too.
+    call_ms: float = 0.0
+    recorded_input_tokens: int = 0
+    recorded_output_tokens: int = 0
+    list_cost_usd: float | None = None
     items: int = 0
     dropped_ungrounded: int = 0
     dropped_injection: int = 0

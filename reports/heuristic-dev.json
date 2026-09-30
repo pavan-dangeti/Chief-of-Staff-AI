@@ -1,0 +1,1059 @@
+{
+  "split": "dev",
+  "backend": "heuristic:rules-v2",
+  "prompt_version": "2.1.0",
+  "examples": 70,
+  "message_level": {
+    "precision": 0.9778,
+    "recall": 1.0,
+    "f1": 0.9888,
+    "f1_ci95": [
+      0.962,
+      1.0
+    ],
+    "tp": 44,
+    "fp": 1,
+    "fn": 0
+  },
+  "item_level": {
+    "precision": 0.9787,
+    "recall": 0.9787,
+    "f1": 0.9787,
+    "f1_ci95": [
+      0.9423,
+      1.0
+    ],
+    "tp": 46,
+    "fp": 1,
+    "fn": 1
+  },
+  "kind_accuracy": 1.0,
+  "owner_accuracy": 1.0,
+  "due_date_accuracy": 1.0,
+  "prefilter_skip_rate": 0.0286,
+  "prefilter_false_negatives": 0,
+  "attack_success_rate": null,
+  "failures": 0,
+  "live_calls": 68,
+  "cache_hits": 0,
+  "latency_ms_p50": 0.08,
+  "latency_ms_p95": 0.19,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost_usd": null,
+  "call_ms_p50": 0.0,
+  "call_ms_p95": 0.0,
+  "timed_calls": 0,
+  "recorded_input_tokens": 0,
+  "recorded_output_tokens": 0,
+  "list_cost_usd": null,
+  "list_cost_per_1k_messages_usd": null,
+  "wall_time_s": 0.065,
+  "created_at": "2026-09-29T20:39:37.276290Z",
+  "results": [
+    {
+      "id": "d01",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Bump the redis client to 5.0.3 before tomorrow's release | owner=Kiran | due=2026-09-15"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d02",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d03",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Tanvi can you own it (re: We need the updated case study deck for the Zeta pitch by…) | owner=Tanvi | due=2026-09-16"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d04",
+      "tags": [
+        "commitment"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Fix the flaky checkout test tonight | owner=Sam | due=2026-09-14"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d05",
+      "tags": [
+        "negative",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d06",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Arrange payment by Friday or let us know if there's an issue | owner=Farhan | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d07",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d08",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Bumped the redis client to 5.0.3 and redeployed staging | owner=Kiran | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d09",
+      "tags": [
+        "negative",
+        "info_question"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d10",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Send both over | owner=Anita | due=2026-09-25"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d11",
+      "tags": [
+        "commitment",
+        "urgent"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Prod is throwing 500s on /login since the 9:40 deploy, rolling back now | owner=Sam | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d12",
+      "tags": [
+        "automated_action",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Submit your timesheet for last week by 6pm today | owner=None | due=2026-09-15"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d13",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d14",
+      "tags": [
+        "negative",
+        "hypothetical"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d15",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Our legal team needs your response by Monday, otherwise we'll have to push the start date | owner=Rahul | due=2026-09-21"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d16",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Renew the domain for kestrel.io before it lapses on the 20th | owner=Farhan | due=2026-09-20"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d17",
+      "tags": [
+        "multi_item",
+        "owner"
+      ],
+      "expected": 2,
+      "predicted": [
+        "[request] Write up a postmortem by Thursday | owner=Sam | due=2026-09-17",
+        "[request] Add an alert for 5xx spikes on /login | owner=Arun | due=None"
+      ],
+      "matched": 2,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d18",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d19",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d20",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] From design share the final mocks for onboarding v2 before the sprint planning tomorrow | owner=None | due=2026-09-17"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d21",
+      "tags": [
+        "automated_action",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Verify your email address within 48 hours to keep your account active | owner=None | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d22",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d23",
+      "tags": [
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Send the Zeta onboarding checklist to their admin by EOD | owner=Tanvi | due=2026-09-16"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d24",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d25",
+      "tags": [
+        "multi_item",
+        "completion"
+      ],
+      "expected": 2,
+      "predicted": [
+        "[request] Postmortem for the login incident is up in the wiki, pls review when you get a chance | owner=None | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d26",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d27",
+      "tags": [
+        "email",
+        "relative_deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] For next Tuesday's board call could you circulate the hiring plan and burn forecast 48 hours in advance | owner=Priyanka | due=2026-09-20"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d28",
+      "tags": [
+        "owner"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] The 5xx alert Arun added is firing on staging too, can you check if the thresholds are off | owner=Sam | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d29",
+      "tags": [
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Legal says Laura's redlines are fine, I'll countersign the MSA tomorrow | owner=Rahul | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d30",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d31",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Added the 5xx alert for /login, it's live in prod | owner=Arun | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d32",
+      "tags": [
+        "negative",
+        "cancellation"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d33",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Send them over by next Wednesday (re: Before we can sign, our security team needs the completed…) | owner=Rahul | due=2026-09-23"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d34",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Renewed kestrel.io for 2 more years ✅ | owner=Farhan | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d35",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Get your PRs merged by EOD today | owner=None | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d36",
+      "tags": [
+        "negative",
+        "hypothetical"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d37",
+      "tags": [
+        "owner",
+        "same_day_weekday"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Rahul can you approve the Zeta discount by Friday | owner=Rahul | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d38",
+      "tags": [
+        "negative",
+        "info_question"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d39",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Kafka certs expire on 30/09, someone needs to rotate them before then or ingestion stops | owner=None | due=2026-09-30"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d40",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Sign it in DocuSign by Monday so we can send it to the candidate (re: The offer letter for the senior backend role is ready) | owner=Priyanka | due=2026-09-21"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d41",
+      "tags": [
+        "negative",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d42",
+      "tags": [
+        "code_mixed",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Bhai @Sam kal tak staging ka DB backup le lena, migration se pehle zaroori hai | owner=Sam | due=2026-09-15"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d43",
+      "tags": [
+        "code_mixed",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Zeta wale client ko invoice aaj bhej dena please | owner=Tanvi | due=2026-09-15"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d44",
+      "tags": [
+        "negative",
+        "code_mixed",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d45",
+      "tags": [
+        "code_mixed",
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Maine hotfix deploy kar diya hai, sab theek chal raha hai | owner=Sam | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d46",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d47",
+      "tags": [
+        "automated_action",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Action required: enable two-factor authentication on your account by October 2 to keep access to the kestrel… | owner=None | due=2026-10-02"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d48",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Karan, can one of you run the pricing survey analysis before Thursday's roadmap review | owner=None | due=2026-09-17"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d49",
+      "tags": [
+        "commitment",
+        "named_owner"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Arun will own the Kafka upgrade next sprint | owner=Arun | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d50",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] All please fill out the offsite dietary form by Friday | owner=None | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d51",
+      "tags": [
+        "email",
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] As discussed, I'll send over the co-marketing proposal early next week | owner=Omar Siddiqui | due=2026-09-21"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d52",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d53",
+      "tags": [
+        "negative",
+        "info_question"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d54",
+      "tags": [
+        "owner",
+        "urgent"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Arun can you take a look asap | owner=Arun | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d55",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] All vendor payments for September have been processed | owner=Deepak | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d56",
+      "tags": [
+        "commitment"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Grace wants the SOC 2 report too, I'll ask Priyanka for access | owner=Rahul | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d57",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": true,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d58",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": true,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d59",
+      "tags": [
+        "unassigned"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Review my PR for the retry middleware | owner=None | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d60",
+      "tags": [
+        "negative",
+        "cancellation"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d61",
+      "tags": [
+        "multi_item",
+        "owner",
+        "deadline"
+      ],
+      "expected": 2,
+      "predicted": [
+        "[request] Publish the release notes for v2.4 by 5pm | owner=Karan | due=2026-09-18",
+        "[request] Update the help center screenshots before Monday | owner=Riya | due=2026-09-21"
+      ],
+      "matched": 2,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d62",
+      "tags": [
+        "email",
+        "unassigned"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Refund the duplicate charge | owner=None | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d63",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d64",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Shipped the retry middleware, thanks for the quick review Sam | owner=Arun | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d65",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Cut the release branch tonight after the last PR lands | owner=Arun | due=2026-09-14"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d66",
+      "tags": [
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Interview 5 customers about the pricing change this week | owner=Riya | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d67",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d68",
+      "tags": [
+        "email",
+        "owner"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Introduce me to your Head of Sales | owner=Priyanka | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d69",
+      "tags": [
+        "negative",
+        "chatter",
+        "hard"
+      ],
+      "expected": 0,
+      "predicted": [
+        "[request] Guys stop leaving dishes in the sink 🙃 | owner=None | due=None"
+      ],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "d70",
+      "tags": [
+        "unassigned",
+        "implicit"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Need to rotate the Stripe API keys before the contractor's last day on Friday | owner=None | due=2026-09-18"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    }
+  ]
+}

@@ -11,6 +11,10 @@ from chief_of_staff.extraction.anthropic_backend import AnthropicExtractor, crea
 from chief_of_staff.extraction.cache import ExtractionCache
 from chief_of_staff.extraction.gemini_backend import GeminiExtractor, create_gemini_client
 from chief_of_staff.extraction.heuristic import HeuristicExtractor
+from chief_of_staff.extraction.openai_compat_backend import (
+    OpenAICompatExtractor,
+    create_openai_compat_client,
+)
 from chief_of_staff.extraction.resilience import CircuitBreaker, RateLimiter, RetryPolicy
 from chief_of_staff.extraction.service import Backend, ExtractionService
 from chief_of_staff.prioritization import Prioritizer, PriorityPolicy
@@ -32,6 +36,7 @@ def build_service(
     *,
     anthropic_client: Any = None,
     gemini_client: Any = None,
+    nvidia_client: Any = None,
     tracer: Tracer | None = None,
     fallback: bool = True,
 ) -> ExtractionService:
@@ -41,6 +46,7 @@ def build_service(
         settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None
     )
     gemini_key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
+    nvidia_key = settings.nvidia_api_key.get_secret_value() if settings.nvidia_api_key else None
 
     def anthropic_backend(model: str) -> Backend:
         client = anthropic_client
@@ -60,23 +66,44 @@ def build_service(
         extractor = GeminiExtractor(client, model, temperature=settings.gemini_temperature)
         return _remote(extractor, settings.gemini_rpm, settings)
 
-    has_anthropic = anthropic_client is not None or anthropic_key is not None
-    has_gemini = gemini_client is not None or gemini_key is not None
+    def nvidia_backend(model: str) -> Backend:
+        client = nvidia_client
+        if client is None:
+            if nvidia_key is None:
+                raise ConfigurationError("backend 'nvidia' needs NVIDIA_API_KEY")
+            client = create_openai_compat_client(
+                settings.nvidia_base_url, nvidia_key, settings.request_timeout_s
+            )
+        extractor = OpenAICompatExtractor(client, model, extra_body=settings.nvidia_extra_body)
+        return _remote(extractor, settings.nvidia_rpm, settings)
+
+    available = {
+        "anthropic": anthropic_client is not None or anthropic_key is not None,
+        "gemini": gemini_client is not None or gemini_key is not None,
+        "nvidia": nvidia_client is not None or nvidia_key is not None,
+    }
+    # Order sets the fallback order: primary first, then the other providers that have keys.
+    backends = {
+        "anthropic": (
+            anthropic_backend,
+            settings.anthropic_model,
+            settings.anthropic_escalation_model,
+        ),
+        "nvidia": (nvidia_backend, settings.nvidia_model, settings.nvidia_escalation_model),
+        "gemini": (gemini_backend, settings.gemini_model, settings.gemini_escalation_model),
+    }
 
     chain: list[Backend] = []
     escalation: Backend | None = None
-    if primary == "anthropic":
-        chain.append(anthropic_backend(settings.anthropic_model))
-        if settings.anthropic_escalation_model:
-            escalation = anthropic_backend(settings.anthropic_escalation_model)
-        if has_gemini and fallback:
-            chain.append(gemini_backend(settings.gemini_model))
-    elif primary == "gemini":
-        chain.append(gemini_backend(settings.gemini_model))
-        if settings.gemini_escalation_model:
-            escalation = gemini_backend(settings.gemini_escalation_model)
-        if has_anthropic and fallback:
-            chain.append(anthropic_backend(settings.anthropic_model))
+    if primary != "heuristic":
+        make, model, escalation_model = backends[primary]
+        chain.append(make(model))
+        if escalation_model:
+            escalation = make(escalation_model)
+        if fallback:
+            for name, (make_other, other_model, _) in backends.items():
+                if name != primary and available[name]:
+                    chain.append(make_other(other_model))
     if primary == "heuristic" or (settings.fallback_to_heuristic and fallback):
         chain.append(Backend(extractor=HeuristicExtractor(), cacheable=False, remote=False))
 

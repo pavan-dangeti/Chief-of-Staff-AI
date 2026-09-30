@@ -1,0 +1,1166 @@
+{
+  "split": "test",
+  "backend": "heuristic:rules-v2",
+  "prompt_version": "2.1.0",
+  "examples": 80,
+  "message_level": {
+    "precision": 1.0,
+    "recall": 0.78,
+    "f1": 0.8764,
+    "f1_ci95": [
+      0.7952,
+      0.94
+    ],
+    "tp": 39,
+    "fp": 0,
+    "fn": 11
+  },
+  "item_level": {
+    "precision": 0.975,
+    "recall": 0.75,
+    "f1": 0.8478,
+    "f1_ci95": [
+      0.7692,
+      0.913
+    ],
+    "tp": 39,
+    "fp": 1,
+    "fn": 13
+  },
+  "kind_accuracy": 1.0,
+  "owner_accuracy": 0.9677,
+  "due_date_accuracy": 0.9032,
+  "prefilter_skip_rate": 0.025,
+  "prefilter_false_negatives": 0,
+  "attack_success_rate": null,
+  "failures": 0,
+  "live_calls": 78,
+  "cache_hits": 0,
+  "latency_ms_p50": 0.08,
+  "latency_ms_p95": 0.18,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost_usd": null,
+  "call_ms_p50": 0.0,
+  "call_ms_p95": 0.0,
+  "timed_calls": 0,
+  "recorded_input_tokens": 0,
+  "recorded_output_tokens": 0,
+  "list_cost_usd": null,
+  "list_cost_per_1k_messages_usd": null,
+  "wall_time_s": 0.077,
+  "created_at": "2026-09-29T20:39:37.046553Z",
+  "results": [
+    {
+      "id": "t01",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Add an index on orders.customer_id before tonight's backfill | owner=Divya | due=2026-09-21"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t02",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t03",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] We need someone to prep the Orbit demo environment by Wednesday morning | owner=None | due=2026-09-23"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t04",
+      "tags": [
+        "commitment"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t05",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Confirm the PO number by Friday so we can issue the invoice before the due date | owner=Ritu | due=2026-09-25"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t06",
+      "tags": [
+        "negative",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t07",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t08",
+      "tags": [
+        "negative",
+        "info_question"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t09",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Draft the changelog for 3.1 by Thursday and share it in #product | owner=Amit | due=2026-09-24"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t10",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Countersign and return it by end of week (re: Our legal team signed the mutual NDA) | owner=Karthik | due=2026-09-25"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t11",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Added the index on orders.customer_id, backfill ran in 14 min 🎉 | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t12",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t13",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t14",
+      "tags": [
+        "negative",
+        "hypothetical"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t15",
+      "tags": [
+        "automated_action"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Your domain orbitlabs.dev expires on 29 September 2026 | owner=None | due=2026-09-29"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t16",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": true,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t17",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t18",
+      "tags": [
+        "commitment"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Run the load test tomorrow and post the p95s | owner=Nikhil | due=2026-09-23"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t19",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Submit your August expense report today, finance closes the books tomorrow | owner=Karthik | due=2026-09-22"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t20",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t21",
+      "tags": [
+        "unassigned",
+        "implicit"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Update the on-call rotation before Monday, Nikhil is on leave next week | owner=None | due=2026-09-28"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t22",
+      "tags": [
+        "negative",
+        "email"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t23",
+      "tags": [
+        "owner",
+        "implicit"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t24",
+      "tags": [
+        "owner",
+        "urgent"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Rotate it immediately and check CloudTrail for misuse (re: We found an exposed AWS key in a public gist) | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t25",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t26",
+      "tags": [
+        "negative",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t27",
+      "tags": [
+        "email",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Nikhil, could you submit your interview feedback for Rohan by tomorrow noon | owner=Nikhil | due=2026-09-24"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t28",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Rotated the leaked AWS key and nothing suspicious in CloudTrail | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t29",
+      "tags": [
+        "negative",
+        "info_question"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t30",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Make sure everyone completes the security awareness training by 30/09 | owner=None | due=2026-09-30"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t31",
+      "tags": [
+        "code_mixed",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Parso tak search service ka rollout plan share kar dena | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t32",
+      "tags": [
+        "code_mixed",
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Maine Paul ko NDA countersign karke bhej diya | owner=Karthik | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t33",
+      "tags": [
+        "negative",
+        "code_mixed",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t34",
+      "tags": [
+        "code_mixed",
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t35",
+      "tags": [
+        "email",
+        "implicit",
+        "churn_risk"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] If this isn't fixed by next Friday we'll need to reconsider our renewal (re: Our team is frustrated with the sync delays over the past…) | owner=Karthik | due=2026-10-02"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t36",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t37",
+      "tags": [
+        "multi_item",
+        "commitment"
+      ],
+      "expected": 2,
+      "predicted": [
+        "[commitment] Nikhil will take the Helix sync issue; I'll update the customer by EOD | owner=Nikhil | due=2026-09-24"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t38",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t39",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t40",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": true,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t41",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t42",
+      "tags": [
+        "negative",
+        "hypothetical"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t43",
+      "tags": [
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Write a design doc for the search rollout over the weekend | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t44",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Payroll has been processed, salaries will reflect by Monday | owner=Ritu | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t45",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Provision their workspace by Oct 2 | owner=Nikhil | due=2026-10-02"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t46",
+      "tags": [
+        "commitment"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t47",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Published the 3.1 changelog and release notes 📝 | owner=Amit | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t48",
+      "tags": [
+        "email",
+        "overdue"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Process it at the earliest and share the remittance advice (re: We haven't received payment for invoice INV-2291 due on 15…) | owner=Ritu | due=2026-09-15"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t49",
+      "tags": [
+        "negative",
+        "social"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t50",
+      "tags": [
+        "negative",
+        "cancellation"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t51",
+      "tags": [
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t52",
+      "tags": [
+        "email",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Confirm your slot by 28/09 and send a short bio | owner=Ananya | due=2026-09-28"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t53",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t54",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Book flights for the Goa offsite before Saturday, prices go up after that | owner=Sara | due=2026-09-26"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t55",
+      "tags": [
+        "negative",
+        "info_question"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t56",
+      "tags": [
+        "negative",
+        "email"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t57",
+      "tags": [
+        "commitment",
+        "hard"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t58",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Make sure the pricing page reflects the new tiers before launch on Oct 1 | owner=None | due=2026-10-01"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t59",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t60",
+      "tags": [
+        "multi_item",
+        "owner"
+      ],
+      "expected": 2,
+      "predicted": [
+        "[request] For tomorrow: Divya please pair with Nikhil on the Helix sync fix, Amit keep the status page updated | owner=None | due=2026-09-24"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t61",
+      "tags": [
+        "negative",
+        "automated"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t62",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Helix sync fix is deployed, lag is back under 5s | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t63",
+      "tags": [
+        "commitment",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Send you a written RCA by Monday | owner=Karthik | due=2026-09-28"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t64",
+      "tags": [
+        "negative",
+        "chatter"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t65",
+      "tags": [
+        "unassigned"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Approve my PR for the index migration | owner=None | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t66",
+      "tags": [
+        "email",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Ritu, the TDS return for Q2 must be filed by 31 October | owner=Ritu | due=2026-10-31",
+        "[request] Send the vendor payment ledger by 10th October so we have time to prepare it (re: Ritu, the TDS return for Q2 must be filed by 31 October) | owner=Ritu | due=2026-10-10"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t67",
+      "tags": [
+        "negative",
+        "cancellation"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t68",
+      "tags": [
+        "unassigned",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Finish your Q3 self-reviews by end of month | owner=None | due=2026-09-30"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t69",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] PR for the index migration is approved and merged, release is unblocked | owner=Divya | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t70",
+      "tags": [
+        "negative",
+        "announcement"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t71",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Return the old laptop to IT by Wednesday | owner=Karthik | due=2026-09-23"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t72",
+      "tags": [
+        "negative",
+        "hypothetical"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t73",
+      "tags": [
+        "commitment"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[commitment] Share the Orbit pilot success metrics with Paul before the kickoff | owner=Karthik | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t74",
+      "tags": [
+        "automated_action",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t75",
+      "tags": [
+        "owner",
+        "deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Sign off on the onboarding copy | owner=Meghna | due=2026-09-24"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t76",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t77",
+      "tags": [
+        "completion"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[completion] Paid Fatima's INV-2291 and sent the remittance advice | owner=Ritu | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t78",
+      "tags": [
+        "negative",
+        "praise"
+      ],
+      "expected": 0,
+      "predicted": [],
+      "matched": 0,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t79",
+      "tags": [
+        "email",
+        "relative_deadline"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Send the board deck and updated cap table 24 hours before Tuesday's meeting | owner=Ananya | due=2026-09-28"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    },
+    {
+      "id": "t80",
+      "tags": [
+        "owner",
+        "urgent"
+      ],
+      "expected": 1,
+      "predicted": [
+        "[request] Restart the stuck ingestion worker on prod-3 | owner=Nikhil | due=None"
+      ],
+      "matched": 1,
+      "skipped_by_prefilter": false,
+      "attack_succeeded": null,
+      "error": null
+    }
+  ]
+}

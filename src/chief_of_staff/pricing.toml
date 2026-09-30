@@ -1,0 +1,28 @@
+# List prices in USD per 1M tokens, used only for cost estimates in traces and evaluation reports.
+# Keys are the model IDs this project sends. Sources and caveats: docs/pricing.md.
+# Override at runtime with COS_PRICES_PER_MTOK='{"model": [input, output]}'.
+as_of = "2026-09-30"
+
+[models."gemini-3.5-flash-lite"]
+input = 0.30
+output = 2.50
+provider = "Google Gemini Developer API, paid Standard tier"
+source = "https://ai.google.dev/gemini-api/docs/pricing"
+
+[models."deepseek-ai/deepseek-v4.1-flash"]
+input = 0.30
+output = 1.20
+provider = "DeepSeek API, peak-hour rate (off-peak is half)"
+source = "https://api-docs.deepseek.com/quick_start/pricing"
+
+[models."z-ai/glm-5.3-flash"]
+input = 0.15
+output = 0.50
+provider = "Z.ai API"
+source = "https://docs.z.ai/guides/overview/pricing"
+
+[models."nvidia/nemotron-3-super-120b-a12b"]
+input = 0.085
+output = 0.40
+provider = "DeepInfra"
+source = "https://deepinfra.com/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B"

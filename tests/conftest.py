@@ -20,6 +20,8 @@ def _isolated_environment(
         "GOOGLE_API_KEY",
         "COS_ANTHROPIC_API_KEY",
         "COS_GEMINI_API_KEY",
+        "NVIDIA_API_KEY",
+        "COS_NVIDIA_API_KEY",
         "COS_BACKEND",
     ):
         monkeypatch.delenv(name, raising=False)
