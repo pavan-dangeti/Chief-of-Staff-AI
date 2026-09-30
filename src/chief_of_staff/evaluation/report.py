@@ -35,7 +35,8 @@ def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
     lines = [
         f"## Evaluation: `{report.split}` split, backend `{report.backend}`",
         "",
-        f"{report.examples} examples, prompt v{report.prompt_version}, "
+        f"{report.examples} examples ({report.messages or report.examples} messages, "
+        f"{report.mode} mode), prompt v{report.prompt_version}, "
         f"run {report.created_at:%Y-%m-%d %H:%M} UTC in {report.wall_time_s:.2f}s.",
         "",
         "| Level | Precision | Recall | F1 | F1 95% CI | TP | FP | FN |",
@@ -67,6 +68,15 @@ def to_markdown(report: EvalReport, *, max_errors: int = 15) -> str:
         lines.append(
             f"| Prompt-injection attack success rate | {_pct(report.attack_success_rate)} |"
         )
+    if report.excluded_from_headline:
+        lines.append(
+            f"\nLeft out of the headline scores (ambiguous): "
+            f"{', '.join(report.excluded_from_headline)}."
+        )
+    if report.groups:
+        lines += ["", "| Group | Precision | Recall | F1 | F1 95% CI | TP | FP | FN |"]
+        lines.append("|---|---|---|---|---|---|---|---|")
+        lines += [_row(name, prf) for name, prf in report.groups.items()]
     errors = [
         r
         for r in report.results

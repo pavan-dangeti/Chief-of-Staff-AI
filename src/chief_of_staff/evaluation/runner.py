@@ -24,23 +24,17 @@ from chief_of_staff.evaluation.metrics import (
 from chief_of_staff.extraction.prompt import PROMPT_VERSION
 from chief_of_staff.extraction.service import ExtractionService
 from chief_of_staff.models import ActionItem
+from chief_of_staff.pipeline import Pipeline
 from chief_of_staff.prefilter import skip_reason
-from chief_of_staff.tracing import percentile
+from chief_of_staff.prioritization import Prioritizer
+from chief_of_staff.tracing import TraceRecord, percentile
 
 
 class _Outcome(NamedTuple):
     items: list[ActionItem]
     skipped: bool
+    traces: list[TraceRecord]
     error: str | None = None
-    cache_hit: bool = False
-    latency_ms: float = 0.0
-    input_tokens: int = 0
-    output_tokens: int = 0
-    cost_usd: float | None = None
-    call_ms: float = 0.0
-    recorded_input_tokens: int = 0
-    recorded_output_tokens: int = 0
-    list_cost_usd: float | None = None
 
 
 class PRF(BaseModel):
@@ -68,7 +62,14 @@ class EvalReport(BaseModel):
     split: str
     backend: str
     prompt_version: str = PROMPT_VERSION
+    # extraction: one message per example, scored on extraction and verification alone.
+    # pipeline: each example (a message or a thread) runs through the full digest pipeline.
+    mode: Literal["extraction", "pipeline"] = "extraction"
     examples: int
+    messages: int = 0
+    # Headline scores leave out examples tagged "ambiguous"; they appear in groups instead.
+    excluded_from_headline: list[str] = Field(default_factory=list)
+    groups: dict[str, PRF] = Field(default_factory=dict)
     message_level: PRF
     item_level: PRF
     kind_accuracy: float | None
@@ -126,6 +127,10 @@ def _prf(
     )
 
 
+def _needs_pipeline(examples: Sequence[EvalExample]) -> bool:
+    return any(e.thread or any(a.type == "priority" for a in e.attacks) for e in examples)
+
+
 async def evaluate(
     examples: Sequence[EvalExample],
     service: ExtractionService,
@@ -133,34 +138,31 @@ async def evaluate(
     split: str,
     prefilter: bool = True,
     bootstrap_iterations: int = 1000,
+    prioritizer: Prioritizer | None = None,
 ) -> EvalReport:
+    """Score a split. Splits with threads or priority attacks go through the full pipeline."""
     started = time.perf_counter()
-    threads = [example.id for example in examples if example.message is None]
-    if threads:
-        raise ValueError(f"thread examples need pipeline-level scoring: {', '.join(threads)}")
+    pipeline = _needs_pipeline(examples)
 
-    async def run(example: EvalExample) -> _Outcome:
+    async def extract(example: EvalExample) -> _Outcome:
         assert example.message is not None
         if prefilter and skip_reason(example.message) is not None:
-            return _Outcome(items=[], skipped=True)
+            return _Outcome(items=[], skipped=True, traces=[])
         result = await service.extract_message(example.message)
-        trace = result.trace
-        return _Outcome(
-            items=result.items,
-            skipped=False,
-            error=result.error,
-            cache_hit=trace.cache_hit,
-            latency_ms=trace.latency_ms,
-            input_tokens=trace.input_tokens,
-            output_tokens=trace.output_tokens,
-            cost_usd=trace.cost_usd,
-            call_ms=trace.call_ms,
-            recorded_input_tokens=trace.recorded_input_tokens,
-            recorded_output_tokens=trace.recorded_output_tokens,
-            list_cost_usd=trace.list_cost_usd,
-        )
+        return _Outcome(result.items, skipped=False, traces=[result.trace], error=result.error)
 
-    outputs = await asyncio.gather(*(run(example) for example in examples))
+    async def run_pipeline(example: EvalExample) -> _Outcome:
+        messages = example.messages
+        runner = Pipeline(service, prioritizer, prefilter=prefilter)
+        digest = await runner.run(messages, as_of=max(m.timestamp for m in messages))
+        ids = {m.id for m in messages}
+        traces = [t for t in service.tracer.records if t.message_id in ids]
+        errors = [t.error for t in traces if t.error]
+        items = digest.open_items + digest.resolved_items + digest.unmatched_completions
+        skipped = digest.stats.messages_skipped == len(messages)
+        return _Outcome(items, skipped, traces, errors[0] if errors else None)
+
+    outputs = await asyncio.gather(*((run_pipeline if pipeline else extract)(e) for e in examples))
 
     scores: list[ExampleScore] = []
     results: list[ExampleResult] = []
@@ -181,6 +183,7 @@ async def evaluate(
                 expected=len(example.expected),
                 predicted=[
                     f"[{i.kind.value}] {i.action} | owner={i.owner} | due={i.due_date}"
+                    + (f" | {i.priority.value}" if pipeline and i.priority else "")
                     for i in items
                 ],
                 matched=len(score.pairs),
@@ -190,22 +193,41 @@ async def evaluate(
             )
         )
 
-    live = [o for o in outputs if not o.skipped and not o.cache_hit]
-    latencies = [o.latency_ms for o in live]
-    costs = [o.cost_usd for o in outputs if o.cost_usd is not None]
+    headline = [
+        score
+        for example, score in zip(examples, scores, strict=True)
+        if "ambiguous" not in example.tags
+    ]
+    groups: dict[str, PRF] = {}
+    for name in sorted({g for e in examples for g in _group_names(e)}):
+        members = [
+            score
+            for example, score in zip(examples, scores, strict=True)
+            if name in _group_names(example)
+        ]
+        groups[name] = _prf(members, "items", bootstrap_iterations)
+
+    traces = [t for o in outputs for t in o.traces]
+    live = [t for t in traces if not t.cache_hit]
+    costs = [t.cost_usd for t in traces if t.cost_usd is not None]
     # Calls cached before timing was recorded carry 0 ms and are left out rather than counted.
-    call_times = [o.call_ms for o in outputs if o.call_ms > 0]
-    list_costs = [o.list_cost_usd for o in outputs if o.list_cost_usd is not None]
+    call_times = [t.call_ms for t in traces if t.call_ms > 0]
+    list_costs = [t.list_cost_usd for t in traces if t.list_cost_usd is not None]
     list_cost = round(sum(list_costs), 6) if list_costs else None
+    message_count = sum(len(e.messages) for e in examples)
     return EvalReport(
         split=split,
         backend=service.primary_label,
+        mode="pipeline" if pipeline else "extraction",
         examples=len(examples),
-        message_level=_prf(scores, "message", bootstrap_iterations),
-        item_level=_prf(scores, "items", bootstrap_iterations),
-        kind_accuracy=accuracy(scores, "kind"),
-        owner_accuracy=accuracy(scores, "owner"),
-        due_date_accuracy=accuracy(scores, "due"),
+        messages=message_count,
+        excluded_from_headline=[e.id for e in examples if "ambiguous" in e.tags],
+        groups=groups,
+        message_level=_prf(headline, "message", bootstrap_iterations),
+        item_level=_prf(headline, "items", bootstrap_iterations),
+        kind_accuracy=accuracy(headline, "kind"),
+        owner_accuracy=accuracy(headline, "owner"),
+        due_date_accuracy=accuracy(headline, "due"),
         prefilter_skip_rate=round(sum(o.skipped for o in outputs) / len(examples), 4)
         if examples
         else 0.0,
@@ -213,24 +235,35 @@ async def evaluate(
         attack_success_rate=round(attack_hits / attacks, 4) if attacks else None,
         failures=failures,
         live_calls=len(live),
-        cache_hits=sum(o.cache_hit for o in outputs),
-        latency_ms_p50=round(percentile(latencies, 50), 2),
-        latency_ms_p95=round(percentile(latencies, 95), 2),
-        input_tokens=sum(o.input_tokens for o in outputs),
-        output_tokens=sum(o.output_tokens for o in outputs),
+        cache_hits=sum(t.cache_hit for t in traces),
+        latency_ms_p50=round(percentile([t.latency_ms for t in live], 50), 2),
+        latency_ms_p95=round(percentile([t.latency_ms for t in live], 95), 2),
+        input_tokens=sum(t.input_tokens for t in traces),
+        output_tokens=sum(t.output_tokens for t in traces),
         cost_usd=round(sum(costs), 6) if costs else None,
         call_ms_p50=round(percentile(call_times, 50), 2),
         call_ms_p95=round(percentile(call_times, 95), 2),
         timed_calls=len(call_times),
-        recorded_input_tokens=sum(o.recorded_input_tokens for o in outputs),
-        recorded_output_tokens=sum(o.recorded_output_tokens for o in outputs),
+        recorded_input_tokens=sum(t.recorded_input_tokens for t in traces),
+        recorded_output_tokens=sum(t.recorded_output_tokens for t in traces),
         list_cost_usd=list_cost,
         # Per 1,000 messages ingested: prefilter-skipped messages count, at zero cost.
         list_cost_per_1k_messages_usd=(
-            round(list_cost / len(examples) * 1000, 4)
-            if list_cost is not None and examples
+            round(list_cost / message_count * 1000, 4)
+            if list_cost is not None and message_count
             else None
         ),
         wall_time_s=round(time.perf_counter() - started, 3),
         results=results,
     )
+
+
+def _group_names(example: EvalExample) -> list[str]:
+    """Report groups for an example: its category and author, or "ambiguous" on its own."""
+    if "ambiguous" in example.tags:
+        return ["ambiguous"]
+    return [
+        f"{kind}: {value}"
+        for kind, value in (("category", example.category), ("author", example.author))
+        if value
+    ]

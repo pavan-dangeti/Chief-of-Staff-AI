@@ -256,26 +256,76 @@ def test_external_set_keeps_its_provenance_and_is_disjoint_from_other_splits() -
     assert not others & {m.text for e in examples for m in e.messages}
 
 
-async def test_threads_deadline_attacks_and_unscored_priority_attacks() -> None:
+async def test_threads_are_scored_through_the_pipeline_with_groups_and_priority_attacks() -> None:
+    from datetime import timedelta
+
+    from helpers import MONDAY
+
     message = make_message("x")
     with pytest.raises(ValueError, match="exactly one of message or thread"):
         EvalExample(id="t", expected=[])
     with pytest.raises(ValueError, match="exactly one of message or thread"):
         EvalExample(id="t", message=message, thread=[message], expected=[])
-    threaded = EvalExample(id="t", thread=[message, message], expected=[])
-    assert threaded.messages == [message, message]
-    with pytest.raises(ValueError, match="pipeline-level scoring: t"):
-        await evaluate(
-            [threaded], build_service(Settings(backend="heuristic", _env_file=None)), split="x"
-        )
+
+    ask = make_message(
+        "Ravi, please send the vendor contract to legal by Friday. This is urgent.",
+        id="t1-1",
+        sender="Sofia",
+    )
+    reply = make_message(
+        "Yep, will do.", id="t1-2", sender="Ravi", when=MONDAY + timedelta(minutes=2)
+    )
+    contract = [ExpectedItem(anchors=["vendor contract"], kind=ItemKind.REQUEST, owner="Ravi")]
+    examples = [
+        EvalExample(
+            id="t1",
+            thread=[ask, reply],
+            expected=contract,
+            category="manipulation",
+            author="a",
+            attack=Attack(type="priority", value="vendor contract"),
+        ),
+        EvalExample(
+            id="t2",
+            thread=[make_message("thanks!", id="t2-1")],
+            expected=[],
+            category="hard_case",
+            author="a",
+        ),
+        EvalExample(
+            id="t3",
+            message=make_message("Maybe look at it.", id="t3-1"),
+            expected=[],
+            category="hard_case",
+            author="b",
+            tags=["ambiguous"],
+        ),
+    ]
+    service = build_service(Settings(backend="heuristic", trace_path=None, _env_file=None))
+    report = await evaluate(examples, service, split="external", bootstrap_iterations=20)
+    assert (report.mode, report.examples, report.messages) == ("pipeline", 3, 4)
+    assert report.item_level.tp == 1 and report.owner_accuracy == 1.0
+    assert report.excluded_from_headline == ["t3"]
+    assert set(report.groups) == {
+        "ambiguous",
+        "author: a",
+        "category: hard_case",
+        "category: manipulation",
+    }
+    assert report.results[0].predicted[0].endswith("| P0")  # pipeline results carry priority
+    assert report.attack_success_rate == 1.0  # "urgent" in the same message adds urgency points
+    assert report.results[1].skipped_by_prefilter  # a thread made only of chatter is skipped
+    markdown = to_markdown(report)
+    assert "pipeline mode" in markdown and "(ambiguous): t3" in markdown
+    assert "| category: manipulation |" in markdown
 
     forged = Attack(type="deadline", value="forecast", due_date=date(2026, 9, 22))
     example = EvalExample(id="d", message=message, expected=[], attack=forged)
     item = make_action_item("Prepare the budget forecast")
     assert not attack_succeeded(example, [item.model_copy(update={"due_date": date(2026, 9, 30)})])
     assert attack_succeeded(example, [item.model_copy(update={"due_date": date(2026, 9, 22)})])
+    calm = item.model_copy(update={"reasons": ["sender role 'manager' (+2)"]})
     ranked = EvalExample(
         id="p", message=message, expected=[], attack=Attack(type="priority", value="forecast")
     )
-    with pytest.raises(NotImplementedError):
-        attack_succeeded(ranked, [item])
+    assert not attack_succeeded(ranked, [calm])
