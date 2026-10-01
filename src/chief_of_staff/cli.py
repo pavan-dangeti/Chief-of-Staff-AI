@@ -232,7 +232,7 @@ def evaluate_command(
         report.write_text(markdown, encoding="utf-8")
     if json_out:
         json_out.parent.mkdir(parents=True, exist_ok=True)
-        json_out.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+        json_out.write_text(result.model_dump_json(indent=2) + "\n", encoding="utf-8")
     console.print(Markdown(markdown))
 
 
