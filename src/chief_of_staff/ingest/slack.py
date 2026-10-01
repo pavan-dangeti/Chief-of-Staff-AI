@@ -59,8 +59,11 @@ def normalize_slack_message(
     text = raw.get("text", "")
     if subtype in _SKIP_SUBTYPES or not text.strip():
         return None
-    sender = users.get(raw.get("user", ""), raw.get("username") or raw.get("user") or "unknown")
+    user_id = raw.get("user", "")
+    sender = users.get(user_id, raw.get("username") or user_id or "unknown")
     automated = subtype in _AUTOMATED_SUBTYPES or "bot_id" in raw
+    # A user ID is stable; a display name can be copied. Unknown without a directory or for bots.
+    verified = None if automated or not users or not user_id else user_id in users
     thread_ts = raw.get("thread_ts")
     return Message(
         id=f"slack:{channel}:{raw['ts']}",
@@ -72,6 +75,7 @@ def normalize_slack_message(
         timestamp=datetime.fromtimestamp(float(raw["ts"]), tz=UTC),
         text=_render_text(text, users),
         is_automated=automated,
+        sender_verified=verified,
     )
 
 

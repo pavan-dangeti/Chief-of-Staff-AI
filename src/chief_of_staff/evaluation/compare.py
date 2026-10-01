@@ -50,3 +50,37 @@ def comparison_table(runs: list[tuple[EvalReport, EvalReport]]) -> str:
             f"| {latency} | {_cost(test)} |"
         )
     return "\n".join(lines) + "\n"
+
+
+def _f1(report: EvalReport) -> str:
+    low, high = report.item_level.f1_ci95
+    return f"{report.item_level.f1:.3f} ({low:.3f}–{high:.3f})"
+
+
+def _attacks(report: EvalReport) -> str:
+    attacks = sum(r.attack_succeeded is not None for r in report.results)
+    return f"{sum(bool(r.attack_succeeded) for r in report.results)} of {attacks}"
+
+
+def external_table(runs: list[tuple[EvalReport, EvalReport, EvalReport]]) -> str:
+    """``runs`` holds (held-out test, external before the defences, external now) per backend."""
+    lines = [
+        "| Backend | Held-out test F1 | External F1, before defences | Change from held-out "
+        "| External F1, now | Attacks succeeded, before → now |",
+        "|---|---|---|---|---|---|",
+    ]
+    for test, before, now in runs:
+        if (test.split, before.split, now.split) != ("test", "external", "external"):
+            raise ValueError(f"expected a test and two external reports for {test.backend}")
+        if len({test.backend, before.backend, now.backend}) != 1:
+            raise ValueError(f"reports are for different backends: {test.backend}")
+        if test.failures or before.failures or now.failures:
+            raise ValueError(f"{test.backend} has failed messages; rerun it to completion")
+        # Neither the held-out split nor "before" informed the defences, so compare those two;
+        # "now" was measured after defences designed on this set and is optimistic.
+        change = before.item_level.f1 - test.item_level.f1
+        lines.append(
+            f"| `{test.backend}` | {_f1(test)} | {_f1(before)} | **{change:+.3f}** "
+            f"| {_f1(now)} | {_attacks(before)} → {_attacks(now)} |"
+        )
+    return "\n".join(lines) + "\n"

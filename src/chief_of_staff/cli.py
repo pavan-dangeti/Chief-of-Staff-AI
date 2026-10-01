@@ -241,20 +241,27 @@ def compare(
     tags: Annotated[list[str], typer.Argument(help="Report tags, e.g. heuristic gemini.")],
     reports_dir: Annotated[Path, typer.Option()] = Path("reports"),
     output: Annotated[Path | None, typer.Option(help="Write the Markdown table here.")] = None,
+    external: Annotated[
+        bool, typer.Option(help="Held-out vs externally written set, before and after defences.")
+    ] = False,
 ) -> None:
-    """Compare backends from saved <tag>-test.json and <tag>-injection.json reports."""
-    from chief_of_staff.evaluation.compare import comparison_table, load_report
+    """Compare backends from saved <tag>-test/-injection (or -external) JSON reports."""
+    from chief_of_staff.evaluation.compare import comparison_table, external_table, load_report
+    from chief_of_staff.evaluation.runner import EvalReport
+
+    def report(tag: str, name: str) -> EvalReport:
+        return load_report(reports_dir / f"{tag}-{name}.json")
 
     try:
-        table = comparison_table(
-            [
-                (
-                    load_report(reports_dir / f"{tag}-test.json"),
-                    load_report(reports_dir / f"{tag}-injection.json"),
-                )
-                for tag in tags
-            ]
-        )
+        if external:
+            table = external_table(
+                [
+                    (report(t, "test"), report(t, "external-before"), report(t, "external"))
+                    for t in tags
+                ]
+            )
+        else:
+            table = comparison_table([(report(t, "test"), report(t, "injection")) for t in tags])
     except (OSError, ValueError) as exc:
         errors.print(f"[red]Error:[/] {escape(str(exc))}", soft_wrap=True)
         raise typer.Exit(1) from exc

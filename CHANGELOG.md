@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Evaluation of conversations and priority attacks through the full pipeline, with per-category
+  and per-author scores; results for four backends on the externally written set, before and
+  after the defences below (`cos compare --external`).
+- Sender verification from the source system: Slack user IDs missing from the workspace directory
+  and mail failing DMARC mark a sender unverified, and such messages create nothing.
+- A commitment someone else claims for a person ("Eli agreed to...") is dropped; the injection
+  guard also catches "the assistant must..." and notes addressed to an assistant or bot.
+- A 10,000-message scale run (`make scale`) and `docs/design.md`.
+
+### Fixed
+
+- Syncing the same digest into the ledger twice could add an item the second time.
+- Duplicate detection re-tokenised both items for every compared pair; features are now computed
+  once per item, with the same matching rules.
+
 ## [2.1.0] - 2026-09-30
 
 ### Added

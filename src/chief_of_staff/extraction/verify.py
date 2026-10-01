@@ -36,11 +36,22 @@ _SELF = frozenset({"i", "me", "myself", "sender", "author", "the sender", "the a
 _AI_DIRECTED = re.compile(
     r"\b(?:ignore (?:all )?(?:previous|prior|above) instructions|system (?:note|instruction|prompt)"
     r"|(?:ai|llm) (?:assistant|agent|model|screening)s?|(?:to|for) (?:the|any|all) (?:ai|bots?|"
-    r"assistants?|summari[sz]ation bot)|assistant\s*[:,]|\bai\s*:|you are now|jailbreak)",
+    r"assistants?|summari[sz]ation bot)|assistant\s*[:,]|\bai\s*:|you are now|jailbreak"
+    r"|the (?:ai |ai-powered )?assistant (?:must|should|shall|needs? to|is to|will)"
+    r"|(?:note|instruction|message|reminder)s? (?:to|for) (?:the |any |all )?"
+    r"(?:ai|assistant|bot|model|tool)s?\b)",
     re.IGNORECASE,
 )
 _MIN_FUZZY_LENGTH = 16
 _FUZZY_THRESHOLD = 90.0
+
+
+# Someone else's claim that a person agreed ("Eli agreed to", "you promised", "you said you'd").
+_CLAIMED = re.compile(
+    r"\b(?:agreed to|promised|committed to|said (?:you|he|she|they)(?:['’]d| would| will))\b",
+    re.IGNORECASE,
+)
+_SENTENCE = re.compile(r"[^.!?\n]+[.!?]*")
 
 
 @dataclass(frozen=True)
@@ -52,6 +63,20 @@ class VerificationStats:
 
 def is_ai_directed(text: str) -> bool:
     return bool(_AI_DIRECTED.search(text))
+
+
+def is_claimed_commitment(item: ExtractedItem, message: Message, text: str) -> bool:
+    """A commitment the sender attributes to someone else; only that person can make one."""
+    if item.kind is not ItemKind.COMMITMENT:
+        return False
+    if item.owner is not None and first_name(item.owner) == first_name(message.sender):
+        return False
+    evidence = normalize(item.evidence)
+    return any(
+        _CLAIMED.search(sentence)
+        and (evidence in normalize(sentence) or normalize(sentence) in evidence)
+        for sentence in _SENTENCE.findall(text)
+    )
 
 
 def is_grounded(evidence: str, text: str) -> bool:
@@ -109,6 +134,9 @@ def verify_items(
             continue
         if is_ai_directed(item.evidence) or is_ai_directed(item.action):
             injected += 1
+            continue
+        if is_claimed_commitment(item, message, redacted.text):
+            injected += 1  # counted with the other manipulation defences
             continue
         owner, was_cleared = verify_owner(item.owner, message, redacted.text)
         cleared += was_cleared

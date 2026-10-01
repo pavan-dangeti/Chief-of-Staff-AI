@@ -28,7 +28,22 @@ def _tokens(item: ActionItem) -> set[str]:
     return content_tokens(f"{item.action} {item.evidence}")
 
 
-def _jaccard(left: set[str], right: set[str]) -> float:
+@dataclass(frozen=True)
+class _Features:
+    """Text features of one item, computed once instead of once per compared pair."""
+
+    tokens: frozenset[str]
+    objects: frozenset[str]
+    action: str
+
+    @classmethod
+    def of(cls, item: ActionItem) -> _Features:
+        return cls(
+            frozenset(_tokens(item)), frozenset(object_tokens(item.action)), item.action.casefold()
+        )
+
+
+def _jaccard(left: frozenset[str] | set[str], right: frozenset[str] | set[str]) -> float:
     return len(left & right) / len(left | right) if left and right else 0.0
 
 
@@ -41,7 +56,14 @@ def _owners_compatible(left: ActionItem, right: ActionItem) -> bool:
 
 
 def is_duplicate(left: ActionItem, right: ActionItem, policy: MatchPolicy | None = None) -> bool:
-    policy = policy or MatchPolicy()
+    return _is_duplicate(
+        left, right, _Features.of(left), _Features.of(right), policy or MatchPolicy()
+    )
+
+
+def _is_duplicate(
+    left: ActionItem, right: ActionItem, lf: _Features, rf: _Features, policy: MatchPolicy
+) -> bool:
     if left.message_id == right.message_id or not _owners_compatible(left, right):
         return False
     if (
@@ -50,28 +72,34 @@ def is_duplicate(left: ActionItem, right: ActionItem, policy: MatchPolicy | None
         and (abs((left.due_date - right.due_date).days) > policy.max_due_gap_days)
     ):
         return False
-    if _jaccard(_tokens(left), _tokens(right)) >= policy.duplicate_jaccard:
+    if _jaccard(lf.tokens, rf.tokens) >= policy.duplicate_jaccard:
         return True
-    left_objects, right_objects = object_tokens(left.action), object_tokens(right.action)
-    shared = len(left_objects & right_objects)
+    shared = len(lf.objects & rf.objects)
     if (
         shared >= policy.object_min_shared
-        and shared / min(len(left_objects), len(right_objects)) >= policy.object_overlap
+        and shared / min(len(lf.objects), len(rf.objects)) >= policy.object_overlap
     ):
         return True
-    return fuzz.token_set_ratio(left.action.casefold(), right.action.casefold()) >= (
-        policy.duplicate_fuzzy
-    )
+    return fuzz.token_set_ratio(lf.action, rf.action) >= policy.duplicate_fuzzy
 
 
 def completion_score(
     completion: ActionItem, task: ActionItem, policy: MatchPolicy | None = None
 ) -> float:
     """Return a match score in [0, 1], or 0 when the completion cannot close the task."""
+    return _completion_score(completion, task, _tokens(completion), _tokens(task), policy)
+
+
+def _completion_score(
+    completion: ActionItem,
+    task: ActionItem,
+    left: frozenset[str] | set[str],
+    right: frozenset[str] | set[str],
+    policy: MatchPolicy | None,
+) -> float:
     policy = policy or MatchPolicy()
     if completion.timestamp < task.timestamp or task.kind is ItemKind.COMPLETION:
         return 0.0
-    left, right = _tokens(completion), _tokens(task)
     shared = len(left & right)
     same_thread = completion.thread_id is not None and completion.thread_id == task.thread_id
     jaccard = _jaccard(left, right)
@@ -92,9 +120,11 @@ def apply_completions(
     )
     unmatched: list[ActionItem] = []
     matched = 0
+    task_tokens = [_tokens(task) for task in tasks]
     for completion in completions:
+        done_tokens = _tokens(completion)
         scored = [
-            (completion_score(completion, task, policy), index)
+            (_completion_score(completion, task, done_tokens, task_tokens[index], policy), index)
             for index, task in enumerate(tasks)
             if tasks[index].status is Status.OPEN
         ]
@@ -126,9 +156,15 @@ def deduplicate(
             index = parent[index]
         return index
 
+    policy = policy or MatchPolicy()
+    features = [_Features.of(item) for item in items]
+    # ponytail: still compares every pair, now with precomputed features; block by shared
+    # tokens if digests over tens of thousands of items become slow.
     for i in range(len(items)):
         for j in range(i + 1, len(items)):
-            if items[i].status == items[j].status and is_duplicate(items[i], items[j], policy):
+            if items[i].status == items[j].status and _is_duplicate(
+                items[i], items[j], features[i], features[j], policy
+            ):
                 parent[find(j)] = find(i)
 
     groups: dict[int, list[ActionItem]] = {}

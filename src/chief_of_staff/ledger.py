@@ -65,6 +65,12 @@ class Ledger:
         def find_existing(item: ActionItem) -> ActionItem | None:
             if item.id in known:
                 return known[item.id]
+            # Merged into an entry by an earlier sync; that entry may be closed by now.
+            merged_into = next(
+                (k for k in known.values() if item.message_id in k.related_message_ids), None
+            )
+            if merged_into is not None:
+                return merged_into
             return next((o for o in open_items if is_duplicate(o, item)), None)
 
         with self._lock, self._conn:

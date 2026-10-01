@@ -33,6 +33,8 @@ _SYSTEM_EVENT = re.compile(r"\bhas (?:joined|left) the channel\b", re.IGNORECASE
 
 def skip_reason(message: Message) -> str | None:
     """Return why a message can be skipped, or ``None`` if it must be extracted."""
+    if message.sender_verified is False:
+        return "unverified_sender"
     text = message.text.strip()
     if not text:
         return "empty"

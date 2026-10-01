@@ -47,6 +47,9 @@ class Message(BaseModel):
     text: str
     recipients: tuple[str, ...] = ()
     is_automated: bool = False
+    # From the source system, never from the text: a stable Slack user ID missing from the
+    # workspace directory, or failed email authentication (DMARC). None means unknown.
+    sender_verified: bool | None = None
 
     @field_validator("timestamp")
     @classmethod
