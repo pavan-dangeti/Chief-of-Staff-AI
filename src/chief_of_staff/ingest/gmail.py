@@ -31,6 +31,15 @@ def is_automated(headers: list[dict[str, str]]) -> bool:
     return bool(_NOREPLY.search(parseaddr(header(headers, "From"))[1]))
 
 
+_DMARC = re.compile(r"\bdmarc=(pass|fail)\b", re.IGNORECASE)
+
+
+def sender_verified(headers: list[dict[str, str]]) -> bool | None:
+    """DMARC result from the receiving server's Authentication-Results header, if present."""
+    match = _DMARC.search(header(headers, "Authentication-Results"))
+    return None if match is None else match.group(1).lower() == "pass"
+
+
 def _walk(payload: dict[str, Any]) -> Iterator[dict[str, Any]]:
     yield payload
     for part in payload.get("parts", []):
@@ -74,6 +83,7 @@ def parse_gmail_message(message: dict[str, Any], roles: dict[str, str] | None = 
         text=extract_body(payload),
         recipients=recipients,
         is_automated=automated,
+        sender_verified=sender_verified(headers),
     )
 
 

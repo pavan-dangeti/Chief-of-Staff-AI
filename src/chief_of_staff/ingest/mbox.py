@@ -12,7 +12,7 @@ from email.utils import getaddresses, parseaddr, parsedate_to_datetime
 from pathlib import Path
 
 from chief_of_staff.ingest.email_text import clean_email_body
-from chief_of_staff.ingest.gmail import is_automated
+from chief_of_staff.ingest.gmail import is_automated, sender_verified
 from chief_of_staff.models import Message, Source
 
 
@@ -64,6 +64,7 @@ def iter_mbox(path: Path, *, since: datetime | None = None) -> Iterator[Message]
                 text=text,
                 recipients=tuple(name or address for name, address in getaddresses(to) if address),
                 is_automated=automated,
+                sender_verified=sender_verified(headers),
             )
     finally:
         box.close()
