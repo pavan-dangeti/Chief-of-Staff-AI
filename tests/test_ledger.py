@@ -74,3 +74,19 @@ def test_overdue_and_persistence(tmp_path: object) -> None:
     ledger.close()
     with Ledger(path) as reopened:
         assert [i.id for i in reopened.overdue(date(2026, 9, 20))] == ["a:0"]
+
+
+def test_resyncing_a_digest_with_an_open_item_and_its_done_duplicate_adds_nothing(
+    ledger: Ledger,
+) -> None:
+    """Found by the 10,000-message scale run: the second sync used to add the done copy."""
+    asked = make_action_item("Send the board deck", id="a:0", message_id="a", owner=None)
+    done = make_action_item(
+        "Send the board deck to members", id="b:0", message_id="b", owner=None
+    ).model_copy(update={"status": Status.DONE})
+    same = digest([asked], resolved=[done])
+    first = ledger.sync(same)
+    assert (first.added, first.updated) == (1, 1)
+    again = ledger.sync(same)
+    assert (again.added, again.updated) == (0, 2)
+    assert len(ledger.items()) == 1
