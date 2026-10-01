@@ -44,7 +44,7 @@ class Settings(BaseSettings):
         default=None, validation_alias=AliasChoices("COS_NVIDIA_API_KEY", "NVIDIA_API_KEY")
     )
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
-    # Highest recall of the models compared in reports/comparison.md.
+    # Highest held-out recall in reports/comparison.md; see the README for the external set.
     nvidia_model: str = "z-ai/glm-5.3-flash"
     nvidia_escalation_model: str | None = None
     # Free keys are shared and rate limited; stay well under the catalog's per-key limit.

@@ -158,8 +158,8 @@ def deduplicate(
 
     policy = policy or MatchPolicy()
     features = [_Features.of(item) for item in items]
-    # ponytail: still compares every pair, now with precomputed features; block by shared
-    # tokens if digests over tens of thousands of items become slow.
+    # Still compares every pair (quadratic). Fine at 10,000 messages; past tens of thousands of
+    # items, only compare items that share a word.
     for i in range(len(items)):
         for j in range(i + 1, len(items)):
             if items[i].status == items[j].status and _is_duplicate(

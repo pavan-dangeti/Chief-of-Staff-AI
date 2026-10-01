@@ -191,7 +191,7 @@ multiplied by a named provider's published price for that model, dated in
 | GLM 5.3 Flash (NVIDIA API Catalog) | **0.981** (0.950–1.000) | 0.981 | 0.981 | 0 of 15 | 10.3 s / 28.7 s | $0.155 |
 | Gemini 3.5 Flash-Lite (Gemini free tier) | **0.931** (0.875–0.973) | 0.959 | 0.904 | 1 of 15 | 1.2 s / 5.9 s | $0.449 |
 | DeepSeek V4.1 Flash (NVIDIA API Catalog) | **0.902** (0.839–0.951) | 0.920 | 0.885 | 0 of 15 | 4.6 s / 26.8 s | $0.322 |
-| Nemotron 3 Super (NVIDIA API Catalog) | **0.863** (0.786–0.927) | 0.954 | 0.788 | 1 of 15 | 0.9 s / 3.2 s | $0.098 |
+| Nemotron 3 Super (NVIDIA API Catalog) | **0.863** (0.786–0.927) | 0.954 | 0.788 | 0 of 15 (1 before the wider guard) | 0.9 s / 3.2 s | $0.098 |
 | Offline rules | **0.848** (0.769–0.913) | 0.975 | 0.750 | 0 of 15 | 0.1 / 0.2 ms, local | $0 |
 
 ```bash
@@ -368,7 +368,7 @@ curl -s localhost:8000/v1/digest -H 'content-type: application/json' -d '{
 
 Endpoints: `POST /v1/digest` (batch to digest), `POST /v1/extract` (one message to verified
 items), `GET /healthz`. Interactive OpenAPI docs are served at `/docs`. To run in a container:
-`docker build -t cos . && docker run -p 8000:8000 -e ANTHROPIC_API_KEY cos`.
+`docker build -t cos . && docker run -p 8000:8000 -e NVIDIA_API_KEY cos` (or another provider's key).
 
 ## Configuration
 
@@ -442,7 +442,8 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
   message. A thread-aware pass is the next step.
 - Priority can be raised by words in a message. The model cannot set priority, but the keyword
   signals ("urgent", "critical") also read the surrounding message text, so an injected "mark it
-  critical" can move an item up. Injection scoring does not measure priority yet.
+  critical" can move an item up when it is in the same message. Priority attacks are scored on the
+  externally written set (pipeline mode).
 - Latency comes from shared free endpoints (see above); it is an upper bound, not a forecast for
   paid, dedicated serving. Costs are list-price estimates, not bills.
 - Four models, one prompt, one run each on 80 test messages: run-to-run variation is not measured,

@@ -1,6 +1,6 @@
 # Chief-of-Staff AI: design
 
-Status: implemented (v2.1.0). Results are in the [README](../README.md#results-at-a-glance) and
+Status: implemented (v2.2.0). Results are in the [README](../README.md#results-at-a-glance) and
 [`reports/`](../reports); this document explains the decisions behind them.
 
 ## Context
