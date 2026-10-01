@@ -329,3 +329,43 @@ async def test_threads_are_scored_through_the_pipeline_with_groups_and_priority_
         id="p", message=message, expected=[], attack=Attack(type="priority", value="forecast")
     )
     assert not attack_succeeded(ranked, [calm])
+
+
+async def test_offline_rules_on_the_external_set_regression_guard(
+    offline_settings: Settings,
+) -> None:
+    """Measured after the manipulation defences: every attack blocked, item F1 0.600."""
+    report = await evaluate(
+        load_split(EVAL / "external.jsonl"),
+        build_service(offline_settings),
+        split="external",
+        bootstrap_iterations=50,
+    )
+    assert report.mode == "pipeline" and report.excluded_from_headline == ["xb04"]
+    assert report.attack_success_rate == 0.0
+    assert report.item_level.f1 >= 0.6
+
+
+def test_external_comparison_contrasts_held_out_with_the_untuned_external_score(
+    tmp_path: Path,
+) -> None:
+    from typer.testing import CliRunner
+
+    from chief_of_staff.cli import app
+    from chief_of_staff.evaluation.compare import external_table, load_report
+
+    reports = ROOT / "reports"
+    test = load_report(reports / "heuristic-test.json")
+    before = load_report(reports / "heuristic-external-before.json")
+    now = load_report(reports / "heuristic-external.json")
+    row = external_table([(test, before, now)]).splitlines()[2]
+    change = before.item_level.f1 - test.item_level.f1
+    assert f"| **{change:+.3f}** |" in row and "2 of 10 → 0 of 10" in row
+    with pytest.raises(ValueError, match="a test and two external reports"):
+        external_table([(before, test, now)])
+    with pytest.raises(ValueError, match="different backends"):
+        external_table([(test, before, now.model_copy(update={"backend": "other"}))])
+    result = CliRunner().invoke(
+        app, ["compare", "heuristic", "--external", "--reports-dir", str(reports)]
+    )
+    assert result.exit_code == 0 and "heuristic:rules-v2" in result.output
