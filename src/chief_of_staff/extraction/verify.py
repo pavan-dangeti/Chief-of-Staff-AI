@@ -36,7 +36,8 @@ _SELF = frozenset({"i", "me", "myself", "sender", "author", "the sender", "the a
 _AI_DIRECTED = re.compile(
     r"\b(?:ignore (?:all )?(?:previous|prior|above) instructions|system (?:note|instruction|prompt)"
     r"|(?:ai|llm) (?:assistant|agent|model|bot|tool)s?(?:\s*[:,]| (?:processing|reading|screening"
-    r"|summari[sz]ing|handling|parsing|reviewing)\b)"
+    r"|summari[sz]ing|handling|parsing|reviewing|analy[sz]ing|scanning|triaging|monitoring"
+    r"|extracting|receiving|must|shall|should|needs? to|(?:is|are) to|please)\b)"
     r"|assistant\s*[:,]|\bai\s*:|you are now|jailbreak"
     r"|the (?:ai |ai-powered )?assistant (?:must|should|shall|needs? to|is to|will)"
     r"|(?:note|instruction|message|reminder)s? (?:to|for) (?:the |any |all )?"
@@ -47,7 +48,7 @@ _AI_DIRECTED = re.compile(
 # one ("send the offer letter to the assistant") it names a recipient, so it is left alone.
 _AI_TARGET = r"(?:to|for) (?:the|any|all) (?:ai|bots?|assistants?|summari[sz]ation bot)\b"
 _AI_ADDRESSED = re.compile(
-    rf"(?:^|[.!?\n(\[\"'>-])\s*{_AI_TARGET}|\b{_AI_TARGET}\s*:", re.IGNORECASE
+    rf"(?:^|[.!?,;:\n(\[\"'>—–-])\s*{_AI_TARGET}|\b{_AI_TARGET}\s*:", re.IGNORECASE
 )
 _MIN_FUZZY_LENGTH = 16
 _FUZZY_THRESHOLD = 90.0
@@ -204,6 +205,8 @@ def _to_action_item(
         channel=message.channel,
         sender=message.sender,
         sender_role=message.sender_role,
+        sender_id=message.sender_id,
+        sender_verified=message.sender_verified,
         timestamp=message.timestamp,
         thread_id=message.thread_id,
         backend=raw.backend,

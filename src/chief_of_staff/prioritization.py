@@ -110,7 +110,7 @@ class PriorityPolicy:
     unassigned_bonus: float = 0.5
     thresholds: tuple[float, float, float] = (7.0, 4.5, 2.5)
     review_threshold: float = 0.6
-    # Sender name or address (casefolded) to role, for sources that carry no role: Slack, mail.
+    # Email address or Slack user ID (casefolded) to role, for sources that carry no role.
     people: dict[str, str] = field(default_factory=dict)
 
     @classmethod
@@ -168,9 +168,10 @@ class Prioritizer:
             return item
         policy = self.policy
         role = item.sender_role.casefold()
-        # Only fills in a missing role: a bot posting under someone's name stays "automated".
-        if role == "unknown":
-            role = policy.people.get(item.sender.casefold(), role).casefold()
+        # Fills in a missing role, and only for an identity the source system vouches for: a
+        # display name can be copied, and an address proves nothing unless DMARC passed.
+        if role == "unknown" and item.sender_verified and item.sender_id:
+            role = policy.people.get(item.sender_id.casefold(), role).casefold()
         role_points = policy.role_weights.get(role, policy.role_weights["unknown"])
         reasons = [f"sender role '{role}' (+{role_points:g})"]
         score = role_points

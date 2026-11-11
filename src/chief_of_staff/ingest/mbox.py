@@ -72,6 +72,7 @@ def iter_mbox(path: Path, *, since: datetime | None = None) -> Iterator[Message]
                 recipients=tuple(name or address for name, address in getaddresses(to) if address),
                 is_automated=automated,
                 sender_verified=sender_verified(headers),
+                sender_id=sender_address.lower() or None,
             )
     finally:
         box.close()

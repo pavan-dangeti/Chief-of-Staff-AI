@@ -50,6 +50,8 @@ class Message(BaseModel):
     # From the source system, never from the text: a stable Slack user ID missing from the
     # workspace directory, or failed email authentication (DMARC). None means unknown.
     sender_verified: bool | None = None
+    # Stable identity from the source system: a Slack user ID or an email address.
+    sender_id: str | None = None
 
     @field_validator("timestamp")
     @classmethod
@@ -166,6 +168,8 @@ class ActionItem(BaseModel):
     status: Status = Status.OPEN
     resolved_by: str | None = None
     related_message_ids: list[str] = Field(default_factory=list)
+    sender_id: str | None = None
+    sender_verified: bool | None = None
 
 
 class SkippedMessage(BaseModel):

@@ -13,13 +13,13 @@ All notable changes to this project are documented here. The format follows
 - An unverified sender's message could still create items with `COS_PREFILTER=false` or through
   `POST /v1/extract`. The check now lives in the extraction service, so it holds on every path.
 - Optional `COS_API_KEY`: when set, `/v1` routes require a bearer key.
-- The Gmail OAuth token file is written with owner-only permissions; CI workflows declare
+- The Gmail OAuth token file is created with owner-only permissions; CI workflows declare
   read-only token permissions.
 
 ### Added
 
-- A `[people]` table in the priority policy gives roles to Slack and mail senders, which carry
-  none; `COS_POLICY_PATH` applies a policy to every command and the API.
+- A `[people]` table in the priority policy gives roles to Slack user IDs and email addresses,
+  applied only to senders the source system verified; `COS_POLICY_PATH` applies a policy to every command and the API.
 
 ### Fixed
 
