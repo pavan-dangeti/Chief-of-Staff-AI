@@ -55,7 +55,7 @@ column. Labelled data is synthetic (see [`datasets/`](datasets/README.md)).
 | Provider outage | Time to fall back **2.2 s** | 44.8 s with the circuit breaker off | Same run, provider down | `make production-run` |
 | Latency, 100 messages at 400 ms per call | **3.1 s** cold, **0.16 s** from cache | 190 s for the v1 sequential loop | [`reports/benchmark.md`](reports/benchmark.md) | `make bench` |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache, zero errors | — | [`reports/production-run.md`](reports/production-run.md) | `make production-run` |
-| Code quality | 351 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
+| Code quality | 353 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
 
 The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
 evaluated**: no Anthropic API access was available for this project, so no Claude numbers are
@@ -350,7 +350,7 @@ Optional extras keep the base install small: `anthropic`, `gemini`, `graph` (Lan
 |---|---|
 | `cos run --slack F --email F [--slack-export DIR] [--mbox F]` | Build a digest: `--format table\|markdown\|json`, `--output`, `--as-of`, `--graph` |
 | `cos run ... --ledger .cos/ledger.sqlite` | Merge results into the persistent ledger |
-| `cos run ... --policy config/priority_policy.example.toml` | Apply company-specific priority weights, and a `[people]` table giving roles to Slack and mail senders |
+| `cos run ... --policy config/priority_policy.example.toml` | Apply company-specific priority weights, and a `[people]` table giving roles to verified Slack user IDs and email addresses |
 | `cos ledger show [--status open\|done\|all]` | List tracked commitments and flag overdue ones |
 | `cos eval --split test\|dev\|injection` | Score a backend with confidence intervals |
 | `cos compare heuristic gemini ...` | One comparison table from saved evaluation reports |
@@ -469,7 +469,11 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
 - The HTTP API has one shared key (`COS_API_KEY`) and is open when it is unset; there are no
   per-user keys or rate limits, so deploy it behind your gateway.
 - Slack exports and mailboxes carry no roles: without a `[people]` table in the policy file, every
-  such sender scores as `unknown`.
+  such sender scores as `unknown`. The table matches Slack user IDs and email addresses, and only
+  for verified senders, so mail with no DMARC result never gets a role.
+- A completion closes a task for good; the ledger has no reopen. Any verified sender can report a
+  task done, so a false "done" from inside the workspace closes it. `resolved_by` records which
+  message did.
 - The injection guard looks for text addressed to an AI ("AI assistant: ...", "To the bot: ...").
   It was narrowed after it dropped ordinary tasks that only mention one ("ship the AI agent
   demo"). Every sentence in the four labelled sets gets the same verdict as before, but the hosted

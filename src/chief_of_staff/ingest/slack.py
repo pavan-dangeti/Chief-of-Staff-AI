@@ -76,6 +76,7 @@ def normalize_slack_message(
         text=_render_text(text, users),
         is_automated=automated,
         sender_verified=verified,
+        sender_id=user_id or None,
     )
 
 

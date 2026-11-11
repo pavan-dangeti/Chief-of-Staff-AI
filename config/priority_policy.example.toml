@@ -7,9 +7,11 @@ review_threshold = 0.6
 sales_lead = 2.5
 head_of_ops = 2.0
 
-# Slack exports and mailboxes carry no roles. Map sender names or addresses to roles here.
+# Slack exports and mailboxes carry no roles. Map Slack user IDs and email addresses to roles.
+# Display names are not accepted: anyone can copy one. A role applies only when the source system
+# verified the sender (a user ID in the workspace directory, or mail that passed DMARC).
 [people]
-"Maya Rao" = "ceo"
+U024BE7LH = "ceo"
 "billing@bigcustomer.example" = "customer"
 
 [signals.enterprise_deal]

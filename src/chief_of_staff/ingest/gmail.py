@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import os
 import re
 from collections.abc import Iterator
 from datetime import UTC, datetime
@@ -93,6 +94,7 @@ def parse_gmail_message(message: dict[str, Any], roles: dict[str, str] | None = 
         recipients=recipients,
         is_automated=automated,
         sender_verified=sender_verified(headers),
+        sender_id=sender_address.lower() or None,
     )
 
 
@@ -115,8 +117,10 @@ def gmail_service(credentials_path: Path, token_path: Path) -> Any:
                 str(credentials_path), SCOPES
             )
             creds = flow.run_local_server(port=0)
-        token_path.write_text(creds.to_json())
-        token_path.chmod(0o600)
+        descriptor = os.open(token_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            token_path.chmod(0o600)  # an older token file may exist with wider permissions
+            handle.write(creds.to_json())
     return discovery.build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
