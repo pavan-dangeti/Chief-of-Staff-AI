@@ -7,6 +7,11 @@ review_threshold = 0.6
 sales_lead = 2.5
 head_of_ops = 2.0
 
+# Slack exports and mailboxes carry no roles. Map sender names or addresses to roles here.
+[people]
+"Maya Rao" = "ceo"
+"billing@bigcustomer.example" = "customer"
+
 [signals.enterprise_deal]
 pattern = "\\b(?:fortune 500|enterprise tier|seven figures)\\b"
 weight = 2.0

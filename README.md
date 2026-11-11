@@ -55,7 +55,7 @@ column. Labelled data is synthetic (see [`datasets/`](datasets/README.md)).
 | Provider outage | Time to fall back **2.2 s** | 44.8 s with the circuit breaker off | Same run, provider down | `make production-run` |
 | Latency, 100 messages at 400 ms per call | **3.1 s** cold, **0.16 s** from cache | 190 s for the v1 sequential loop | [`reports/benchmark.md`](reports/benchmark.md) | `make bench` |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache, zero errors | — | [`reports/production-run.md`](reports/production-run.md) | `make production-run` |
-| Code quality | 332 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
+| Code quality | 351 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
 
 The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
 evaluated**: no Anthropic API access was available for this project, so no Claude numbers are
@@ -130,7 +130,7 @@ their output identical.
   whose evidence addresses an AI; owner verification and out-of-model priority cap the blast radius.
 - **Trust the source system for identity, not the text.** A Slack user ID missing from the workspace
   directory, or mail that fails DMARC, marks the sender unverified, and such messages create
-  nothing. A commitment someone else claims for a person ("Eli agreed to...") is dropped: only
+  nothing, on every path, with the prefilter on or off. A commitment someone else claims for a person ("Eli agreed to...") is dropped: only
   the person can make one.
 - **Prefer recall in the prefilter.** Chatter and newsletters skip the model only when no action
   or deadline cue exists, so "your credits expire on 30 September" still gets through. It lost
@@ -140,7 +140,8 @@ their output identical.
   holding up the queue. SDK contract tests check every argument we send against the installed
   SDK's real signature.
 - **Mask before sending.** Emails, phones, Luhn-valid cards, government IDs, API keys, OTPs and
-  URLs become stable placeholders before any API call and are restored locally. Traces hold
+  URLs become stable placeholders before any API call, in the body and in the sender, recipient
+  and subject lines alike, and are restored locally. Names are not masked. Traces hold
   counts and ids, never message text.
 
 ## Evaluation
@@ -349,7 +350,7 @@ Optional extras keep the base install small: `anthropic`, `gemini`, `graph` (Lan
 |---|---|
 | `cos run --slack F --email F [--slack-export DIR] [--mbox F]` | Build a digest: `--format table\|markdown\|json`, `--output`, `--as-of`, `--graph` |
 | `cos run ... --ledger .cos/ledger.sqlite` | Merge results into the persistent ledger |
-| `cos run ... --policy config/priority_policy.example.toml` | Apply company-specific priority weights |
+| `cos run ... --policy config/priority_policy.example.toml` | Apply company-specific priority weights, and a `[people]` table giving roles to Slack and mail senders |
 | `cos ledger show [--status open\|done\|all]` | List tracked commitments and flag overdue ones |
 | `cos eval --split test\|dev\|injection` | Score a backend with confidence intervals |
 | `cos compare heuristic gemini ...` | One comparison table from saved evaluation reports |
@@ -389,6 +390,8 @@ Settings come from the environment (prefix `COS_`) or a `.env` file; see
 | `COS_CIRCUIT_FAILURE_THRESHOLD` | `5` | Consecutive failures before a provider is bypassed |
 | `COS_REDACT_PII` | `true` | Mask PII and secrets before API calls |
 | `COS_DATE_ORDER` | `DMY` | How to read `03/04`-style dates |
+| `COS_POLICY_PATH` | unset | Priority policy TOML for every command and the API; `--policy` overrides it |
+| `COS_API_KEY` | unset | When set, `/v1` routes require `Authorization: Bearer <key>`; `/healthz` stays open |
 | `COS_PRICES_PER_MTOK` | dated table in [`docs/pricing.md`](docs/pricing.md) | `{"model": [input, output]}` in USD per 1M tokens, for cost estimates |
 
 ## Project structure
@@ -463,7 +466,14 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
   senders explicitly, so its sender-identity results assume a signal real data may not carry.
 - DeepSeek has no result on the externally written set (its endpoint was down during the runs).
 - Priority weights are sensible defaults, not yet learned from which items people act on.
-- The HTTP API has no authentication; deploy it behind your gateway.
+- The HTTP API has one shared key (`COS_API_KEY`) and is open when it is unset; there are no
+  per-user keys or rate limits, so deploy it behind your gateway.
+- Slack exports and mailboxes carry no roles: without a `[people]` table in the policy file, every
+  such sender scores as `unknown`.
+- The injection guard looks for text addressed to an AI ("AI assistant: ...", "To the bot: ...").
+  It was narrowed after it dropped ordinary tasks that only mention one ("ship the AI agent
+  demo"). Every sentence in the four labelled sets gets the same verdict as before, but the hosted
+  models were not re-run, so their attack counts above are from the wider guard.
 
 ## License
 

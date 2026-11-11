@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import re
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from email.utils import getaddresses, parseaddr, parsedate_to_datetime
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,14 @@ def extract_body(payload: dict[str, Any]) -> str:
     return clean_email_body(chosen)
 
 
+def _sent_at(message: dict[str, Any], headers: list[dict[str, str]]) -> datetime:
+    """The Date header, or Gmail's own receive time when it is missing or malformed."""
+    try:
+        return parsedate_to_datetime(header(headers, "Date"))
+    except (TypeError, ValueError):
+        return datetime.fromtimestamp(int(message.get("internalDate", 0)) / 1000, tz=UTC)
+
+
 def parse_gmail_message(message: dict[str, Any], roles: dict[str, str] | None = None) -> Message:
     payload = message["payload"]
     headers = payload.get("headers", [])
@@ -79,7 +88,7 @@ def parse_gmail_message(message: dict[str, Any], roles: dict[str, str] | None = 
         ),
         channel=header(headers, "Subject") or None,
         thread_id=f"gmail:{message['threadId']}" if message.get("threadId") else None,
-        timestamp=parsedate_to_datetime(header(headers, "Date")),
+        timestamp=_sent_at(message, headers),
         text=extract_body(payload),
         recipients=recipients,
         is_automated=automated,
@@ -107,6 +116,7 @@ def gmail_service(credentials_path: Path, token_path: Path) -> Any:
             )
             creds = flow.run_local_server(port=0)
         token_path.write_text(creds.to_json())
+        token_path.chmod(0o600)
     return discovery.build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 

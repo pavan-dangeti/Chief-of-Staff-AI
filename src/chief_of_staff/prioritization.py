@@ -110,6 +110,8 @@ class PriorityPolicy:
     unassigned_bonus: float = 0.5
     thresholds: tuple[float, float, float] = (7.0, 4.5, 2.5)
     review_threshold: float = 0.6
+    # Sender name or address (casefolded) to role, for sources that carry no role: Slack, mail.
+    people: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_toml(cls, path: Path) -> PriorityPolicy:
@@ -131,6 +133,7 @@ class PriorityPolicy:
                 float(thresholds.get("p2", base.thresholds[2])),
             ),
             review_threshold=float(data.get("review_threshold", base.review_threshold)),
+            people={name.casefold(): role for name, role in data.get("people", {}).items()},
         )
 
     def compiled_signals(self) -> list[tuple[str, re.Pattern[str], float]]:
@@ -165,6 +168,9 @@ class Prioritizer:
             return item
         policy = self.policy
         role = item.sender_role.casefold()
+        # Only fills in a missing role: a bot posting under someone's name stays "automated".
+        if role == "unknown":
+            role = policy.people.get(item.sender.casefold(), role).casefold()
         role_points = policy.role_weights.get(role, policy.role_weights["unknown"])
         reasons = [f"sender role '{role}' (+{role_points:g})"]
         score = role_points

@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security
+
+- PII in the sender, recipient and subject lines was sent to the model unmasked; only the body was
+  redacted. Metadata is now masked with the body's placeholders.
+- An unverified sender's message could still create items with `COS_PREFILTER=false` or through
+  `POST /v1/extract`. The check now lives in the extraction service, so it holds on every path.
+- Optional `COS_API_KEY`: when set, `/v1` routes require a bearer key.
+- The Gmail OAuth token file is written with owner-only permissions; CI workflows declare
+  read-only token permissions.
+
+### Added
+
+- A `[people]` table in the priority policy gives roles to Slack and mail senders, which carry
+  none; `COS_POLICY_PATH` applies a policy to every command and the API.
+
+### Fixed
+
+- The injection guard dropped ordinary tasks that mention an AI ("ship the AI agent demo", "send
+  the offer letter to the assistant"). It now matches text addressed to one.
+- The ledger reopened a closed item when a later run saw the task again without its completion,
+  and lost its links to merged messages.
+- `cos ledger show` listed items with no due date before dated ones, and crashed on an unknown
+  `--status`.
+- mbox threads: the first message and deeper replies now share one thread id.
+- A Gmail message without a usable `Date` header no longer aborts the pull.
+- The pilot notice and privacy note said names are masked before a hosted model sees them; they
+  are not, and the text now says so.
+
 ## [2.2.0] - 2026-10-01
 
 ### Added

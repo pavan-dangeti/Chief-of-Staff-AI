@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from chief_of_staff import __version__
@@ -41,16 +42,25 @@ def create_app(
         extraction.close()
 
     app = FastAPI(title="Chief-of-Staff AI", version=__version__, lifespan=lifespan)
+    expected = settings.api_key.get_secret_value() if settings.api_key else None
+
+    def authorize(authorization: str = Header(default="")) -> None:
+        if expected is not None and not secrets.compare_digest(
+            authorization.encode(), f"Bearer {expected}".encode()
+        ):
+            raise HTTPException(status_code=401, detail="missing or wrong API key")
+
+    protected = [Depends(authorize)]
 
     @app.get("/healthz")
     async def healthz() -> Health:
         return Health(status="ok", version=__version__, backend=extraction.primary_label)
 
-    @app.post("/v1/digest")
+    @app.post("/v1/digest", dependencies=protected)
     async def digest(request: DigestRequest) -> Digest:
         return await pipeline.run(request.messages, as_of=request.as_of)
 
-    @app.post("/v1/extract")
+    @app.post("/v1/extract", dependencies=protected)
     async def extract(message: Message) -> list[ActionItem]:
         return (await extraction.extract_message(message)).items
 

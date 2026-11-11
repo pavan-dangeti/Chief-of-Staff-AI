@@ -35,12 +35,19 @@ _UNASSIGNED = frozenset(
 _SELF = frozenset({"i", "me", "myself", "sender", "author", "the sender", "the author"})
 _AI_DIRECTED = re.compile(
     r"\b(?:ignore (?:all )?(?:previous|prior|above) instructions|system (?:note|instruction|prompt)"
-    r"|(?:ai|llm) (?:assistant|agent|model|screening)s?|(?:to|for) (?:the|any|all) (?:ai|bots?|"
-    r"assistants?|summari[sz]ation bot)|assistant\s*[:,]|\bai\s*:|you are now|jailbreak"
+    r"|(?:ai|llm) (?:assistant|agent|model|bot|tool)s?(?:\s*[:,]| (?:processing|reading|screening"
+    r"|summari[sz]ing|handling|parsing|reviewing)\b)"
+    r"|assistant\s*[:,]|\bai\s*:|you are now|jailbreak"
     r"|the (?:ai |ai-powered )?assistant (?:must|should|shall|needs? to|is to|will)"
     r"|(?:note|instruction|message|reminder)s? (?:to|for) (?:the |any |all )?"
     r"(?:ai|assistant|bot|model|tool)s?\b)",
     re.IGNORECASE,
+)
+# "To the assistant" addresses an AI when it opens a sentence or ends in a colon; in the middle of
+# one ("send the offer letter to the assistant") it names a recipient, so it is left alone.
+_AI_TARGET = r"(?:to|for) (?:the|any|all) (?:ai|bots?|assistants?|summari[sz]ation bot)\b"
+_AI_ADDRESSED = re.compile(
+    rf"(?:^|[.!?\n(\[\"'>-])\s*{_AI_TARGET}|\b{_AI_TARGET}\s*:", re.IGNORECASE
 )
 _MIN_FUZZY_LENGTH = 16
 _FUZZY_THRESHOLD = 90.0
@@ -62,7 +69,7 @@ class VerificationStats:
 
 
 def is_ai_directed(text: str) -> bool:
-    return bool(_AI_DIRECTED.search(text))
+    return bool(_AI_DIRECTED.search(text) or _AI_ADDRESSED.search(text))
 
 
 def is_claimed_commitment(item: ExtractedItem, message: Message, text: str) -> bool:
@@ -128,7 +135,14 @@ def verify_items(
 ) -> tuple[list[ActionItem], VerificationStats]:
     verified: list[ActionItem] = []
     dropped = injected = cleared = 0
-    for index, item in enumerate(raw.items):
+    for index, extracted in enumerate(raw.items):
+        # Names come back as placeholders when they were masked; verify the real ones.
+        item = extracted.model_copy(
+            update={
+                "owner": redacted.restore(extracted.owner),
+                "requester": redacted.restore(extracted.requester),
+            }
+        )
         if not is_grounded(item.evidence, redacted.text):
             dropped += 1
             continue
@@ -138,9 +152,9 @@ def verify_items(
         if is_claimed_commitment(item, message, redacted.text):
             injected += 1  # counted with the other manipulation defences
             continue
-        owner, was_cleared = verify_owner(item.owner, message, redacted.text)
+        owner, was_cleared = verify_owner(item.owner, message, message.text)
         cleared += was_cleared
-        requester, _ = verify_owner(item.requester, message, redacted.text)
+        requester, _ = verify_owner(item.requester, message, message.text)
         verified.append(
             _to_action_item(
                 item,
@@ -179,8 +193,8 @@ def _to_action_item(
         id=f"{message.id}:{index}",
         kind=item.kind,
         action=redacted.restore(item.action) or item.action,
-        owner=redacted.restore(owner),
-        requester=redacted.restore(requester),
+        owner=owner,
+        requester=requester,
         deadline_text=deadline_text,
         due_date=due,
         evidence=redacted.restore(item.evidence) or item.evidence,

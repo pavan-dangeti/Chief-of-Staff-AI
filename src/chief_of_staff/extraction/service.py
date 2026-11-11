@@ -111,8 +111,12 @@ class ExtractionService:
     async def _extract(self, message: Message) -> MessageExtraction:
         started = time.perf_counter()
         trace = TraceRecord(run_id=self.tracer.run_id, message_id=message.id)
-        redacted = self.redactor.redact(message.text)
-        result, error = await self._run_chain(message, redacted.text, trace)
+        # Decided by the source system, so it holds on every path, prefilter or not.
+        if message.sender_verified is False:
+            self.tracer.record(trace)
+            return MessageExtraction(message=message, items=[], trace=trace)
+        outbound, redacted = self.redactor.redact_message(message)
+        result, error = await self._run_chain(outbound, redacted.text, trace)
         if result is None:
             trace.error = error
             trace.latency_ms = _elapsed_ms(started)
@@ -121,7 +125,7 @@ class ExtractionService:
 
         raw = result.raw
         if self._should_escalate(raw):
-            raw = await self._escalate(message, redacted.text, raw, trace)
+            raw = await self._escalate(outbound, redacted.text, raw, trace)
 
         items, stats = verify_items(raw, message, redacted, date_order=self.date_order)
         trace.backend, trace.model = raw.backend, raw.model

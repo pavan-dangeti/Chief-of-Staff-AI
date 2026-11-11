@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     redact_pii: bool = True
     prefilter: bool = True
     date_order: Literal["DMY", "MDY"] = "DMY"
+    # Priority policy TOML (weights, signals, people); `cos run --policy` overrides it.
+    policy_path: Path | None = None
+    # When set, the HTTP API requires `Authorization: Bearer <key>` on /v1 routes.
+    api_key: SecretStr | None = None
 
     cache_enabled: bool = True
     cache_path: Path = Path(".cos/cache.sqlite")
