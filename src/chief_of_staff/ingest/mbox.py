@@ -36,6 +36,13 @@ def _sent_at(message: EmailMessage) -> datetime | None:
     return sent if sent.tzinfo is not None else None
 
 
+def _thread_id(message: EmailMessage) -> str | None:
+    """The thread's first Message-ID, so the root and every reply share one id."""
+    references = str(message.get("References", "")).split()
+    root = references[0] if references else str(message.get("In-Reply-To", "")).strip()
+    return root or str(message.get("Message-ID", "")).strip() or None
+
+
 def iter_mbox(path: Path, *, since: datetime | None = None) -> Iterator[Message]:
     """Yield messages sent at or after ``since``; mail without a usable date or body is skipped."""
     box = mailbox.mbox(path, create=False)
@@ -59,7 +66,7 @@ def iter_mbox(path: Path, *, since: datetime | None = None) -> Iterator[Message]
                 sender=sender_name or sender_address or "unknown",
                 sender_role="automated" if automated else "unknown",
                 channel=str(message.get("Subject", "")) or None,
-                thread_id=str(message.get("In-Reply-To", "")) or None,
+                thread_id=_thread_id(message),
                 timestamp=sent,
                 text=text,
                 recipients=tuple(name or address for name, address in getaddresses(to) if address),

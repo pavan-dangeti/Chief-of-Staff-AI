@@ -123,6 +123,7 @@ def build_service(
 
 
 def build_prioritizer(settings: Settings, policy_path: Path | None = None) -> Prioritizer:
+    policy_path = policy_path or settings.policy_path
     if policy_path is not None:
         return Prioritizer(PriorityPolicy.from_toml(policy_path))
     return Prioritizer(PriorityPolicy(review_threshold=settings.review_threshold))

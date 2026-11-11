@@ -30,7 +30,10 @@ def partition(
             skipped.append(SkippedMessage(message_id=message.id, reason="duplicate_id"))
             continue
         seen.add(message.id)
-        reason = skip_reason(message) if enabled else None
+        if enabled:
+            reason = skip_reason(message)
+        else:
+            reason = "unverified_sender" if message.sender_verified is False else None
         if reason is None:
             candidates.append(message)
         else:

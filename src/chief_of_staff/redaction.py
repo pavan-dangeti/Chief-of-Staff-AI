@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from chief_of_staff.models import Message
+
 _LABELLED_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "SECRET",
@@ -69,10 +71,15 @@ class RedactedText:
 
 
 class Redactor:
-    def redact(self, text: str) -> RedactedText:
-        mapping: dict[str, str] = {}
+    def redact(self, text: str, mapping: dict[str, str] | None = None) -> RedactedText:
+        """Mask ``text``; pass an earlier result's ``mapping`` to keep its placeholders."""
+        mapping = {} if mapping is None else mapping
         reverse: dict[str, str] = {}
         counters: dict[str, int] = {}
+        for token, original in mapping.items():
+            label = token[1 : token.rindex("_")]
+            reverse[f"{label}:{original}"] = token
+            counters[label] = counters.get(label, 0) + 1
 
         def placeholder_for(label: str, original: str) -> str:
             key = f"{label}:{original}"
@@ -95,7 +102,23 @@ class Redactor:
             text = pattern.sub(substitute, text)
         return RedactedText(text=text, mapping=mapping)
 
+    def redact_message(self, message: Message) -> tuple[Message, RedactedText]:
+        """The message as it may leave the machine: body and metadata masked with one mapping."""
+        body = self.redact(message.text)
+
+        def scrub(value: str) -> str:
+            return self.redact(value, body.mapping).text
+
+        outbound = message.model_copy(
+            update={
+                "sender": scrub(message.sender),
+                "channel": scrub(message.channel) if message.channel else message.channel,
+                "recipients": tuple(scrub(recipient) for recipient in message.recipients),
+            }
+        )
+        return outbound, body
+
 
 class NoopRedactor(Redactor):
-    def redact(self, text: str) -> RedactedText:
+    def redact(self, text: str, mapping: dict[str, str] | None = None) -> RedactedText:
         return RedactedText(text=text)

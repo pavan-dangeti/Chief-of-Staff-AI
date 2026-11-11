@@ -69,6 +69,12 @@ class Backend(StrEnum):
     NVIDIA = "nvidia"
 
 
+class LedgerFilter(StrEnum):
+    OPEN = "open"
+    DONE = "done"
+    ALL = "all"
+
+
 def _settings(backend: Backend, no_cache: bool, cache: Path | None = None) -> Settings:
     overrides: dict[str, Any] = {"backend": backend.value}
     if no_cache:
@@ -303,7 +309,8 @@ def pilot_run(
     if backend is not Backend.HEURISTIC:
         errors.print(
             f"[yellow]Note:[/] with --backend {backend.value}, message text is sent to that "
-            "provider after names, emails, phone numbers and secrets are masked.",
+            "provider after emails, phone numbers, card and ID numbers, links and secrets are "
+            "masked. Names are not masked.",
             soft_wrap=True,
         )
     settings = _settings(backend, no_cache=False)
@@ -356,13 +363,13 @@ def pilot_report_command(
 @ledger_app.command("show")
 def ledger_show(
     path: Annotated[Path, typer.Option()] = Path(".cos/ledger.sqlite"),
-    status: Annotated[str, typer.Option(help="open, done or all.")] = "open",
+    status: Annotated[LedgerFilter, typer.Option(help="open, done or all.")] = LedgerFilter.OPEN,
     output_format: Annotated[OutputFormat, typer.Option("--format")] = OutputFormat.TABLE,
 ) -> None:
     """List items tracked across runs."""
     if not path.exists():
         raise typer.BadParameter(f"no ledger at {path}")
-    selected = None if status == "all" else Status(status)
+    selected = None if status is LedgerFilter.ALL else Status(status.value)
     with Ledger(path) as ledger:
         items = ledger.items(selected)
         overdue = {item.id for item in ledger.overdue(datetime.now().astimezone().date())}

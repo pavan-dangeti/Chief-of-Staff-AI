@@ -50,7 +50,9 @@ class Ledger:
         if status is not None:
             query, params = f"{query} WHERE status = ?", (status.value,)
         with self._lock:
-            rows = self._conn.execute(f"{query} ORDER BY priority, due_date", params).fetchall()
+            rows = self._conn.execute(
+                f"{query} ORDER BY priority, due_date IS NULL, due_date", params
+            ).fetchall()
         return [ActionItem.model_validate_json(row[0]) for row in rows]
 
     def overdue(self, as_of: date) -> list[ActionItem]:
@@ -83,19 +85,23 @@ class Ledger:
                         open_items.append(item)
                     added += 1
                     continue
-                merged = (
-                    item
-                    if existing.id == item.id
-                    else existing.model_copy(
-                        update={
-                            "related_message_ids": sorted(
-                                {*existing.related_message_ids, item.message_id}
-                            ),
-                            "status": item.status,
-                            "resolved_by": item.resolved_by or existing.resolved_by,
-                        }
-                    )
+                # The stored entry keeps its links, and stays closed once closed: a later run that
+                # sees the task again without its completion must not reopen it.
+                base = item if existing.id == item.id else existing
+                was_done = existing.status is Status.DONE
+                related = {*existing.related_message_ids, *item.related_message_ids}
+                merged = base.model_copy(
+                    update={
+                        "related_message_ids": sorted(
+                            (related | {item.message_id}) - {base.message_id}
+                        ),
+                        "status": Status.DONE if was_done else item.status,
+                        "resolved_by": existing.resolved_by
+                        if was_done
+                        else item.resolved_by or existing.resolved_by,
+                    }
                 )
+                known[merged.id] = merged
                 closed += existing.status is Status.OPEN and merged.status is Status.DONE
                 updated += 1
                 self._upsert(merged, now)

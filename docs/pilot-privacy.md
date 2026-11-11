@@ -44,7 +44,8 @@ open the file in any text editor to check it before sending.
 
 By default the tool uses offline rules. If you choose an AI model instead (`--backend nvidia`,
 `gemini` or `anthropic`, with your own API key), the text of each message is sent to that
-provider after names, email addresses, phone numbers and secrets are masked. That provider's
+provider after email addresses, phone numbers, card and ID numbers, links and secrets are masked.
+Names are not masked. That provider's
 own privacy terms then apply. Only do this if you are comfortable with it; the pilot works
 without it.
 
