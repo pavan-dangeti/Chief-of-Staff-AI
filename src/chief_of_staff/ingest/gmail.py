@@ -33,13 +33,44 @@ def is_automated(headers: list[dict[str, str]]) -> bool:
     return bool(_NOREPLY.search(parseaddr(header(headers, "From"))[1]))
 
 
-_DMARC = re.compile(r"\bdmarc=(pass|fail)\b", re.IGNORECASE)
+_COMMENT = re.compile(r"\([^()]*\)")
+_HEADER_FROM = re.compile(r"\bheader\.from=([^\s;]+)", re.IGNORECASE)
+
+
+def _trusted_servers() -> frozenset[str]:
+    """Receiving servers whose "dmarc=pass" is believed; anyone can add the header below theirs."""
+    names = os.environ.get("COS_TRUSTED_MAIL_SERVERS", "mx.google.com")
+    return frozenset(name.strip().lower() for name in names.split(",") if name.strip())
+
+
+def from_address(headers: list[dict[str, str]]) -> str | None:
+    """The single From address, lowercased; ``None`` when the header holds none or several."""
+    found = [address for _, address in getaddresses([header(headers, "From")]) if address]
+    return found[0].lower() if len(found) == 1 and found[0].count("@") == 1 else None
 
 
 def sender_verified(headers: list[dict[str, str]]) -> bool | None:
-    """DMARC result from the receiving server's Authentication-Results header, if present."""
-    match = _DMARC.search(header(headers, "Authentication-Results"))
-    return None if match is None else match.group(1).lower() == "pass"
+    """DMARC verdict for the From address, from the topmost Authentication-Results header.
+
+    ``False`` for a failure, or a pass that names another domain than the From address. ``True``
+    only for a pass from a trusted receiving server. Everything else is unknown (``None``).
+    """
+    value = header(headers, "Authentication-Results")
+    while _COMMENT.search(value):  # comments can nest and can carry sender-chosen text
+        value = _COMMENT.sub(" ", value)
+    server, *results = (part.strip() for part in value.split(";"))
+    dmarc = [result for result in results if result.lower().startswith("dmarc=")]
+    if len(dmarc) != 1:  # none, or a second one smuggled in through another field
+        return None
+    verdict = dmarc[0].split()[0][len("dmarc=") :].lower()
+    if verdict == "fail":
+        return False
+    address, claimed = from_address(headers), _HEADER_FROM.search(dmarc[0])
+    if verdict != "pass" or address is None or claimed is None:
+        return None
+    if claimed.group(1).lower() != address.rpartition("@")[2]:
+        return False
+    return True if server.lower() in _trusted_servers() else None
 
 
 def _walk(payload: dict[str, Any]) -> Iterator[dict[str, Any]]:
@@ -94,7 +125,7 @@ def parse_gmail_message(message: dict[str, Any], roles: dict[str, str] | None = 
         recipients=recipients,
         is_automated=automated,
         sender_verified=sender_verified(headers),
-        sender_id=sender_address.lower() or None,
+        sender_id=from_address(headers),
     )
 
 
