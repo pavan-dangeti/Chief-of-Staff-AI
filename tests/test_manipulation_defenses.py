@@ -139,6 +139,8 @@ def test_slack_verification_uses_stable_user_ids(
         ('mx.google.com; spf=pass (a "; dmarc=pass header.from=acme.io;" b) x', None),
         ('mx.google.com; spf=pass smtp.mailfrom="a; dmarc=pass header.from=acme.io', None),
         ("mx.google.com; dmarc=pass header.from=acme.io; dmarc=pass header.from=acme.io", None),
+        # One result naming two domains is a mismatch, whichever comes first.
+        ("mx.google.com; dmarc=pass header.from=acme.io header.from=evil.io", False),
     ],
 )
 def test_email_verification_reads_the_dmarc_result(value: str, expected: bool | None) -> None:
