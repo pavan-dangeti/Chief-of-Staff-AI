@@ -482,8 +482,10 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
   message did.
 - The injection guard looks for text addressed to an AI ("AI assistant: ...", "To the bot: ...").
   It was narrowed after it dropped ordinary tasks that only mention one ("ship the AI agent
-  demo"). Every sentence in the four labelled sets gets the same verdict as before, but the hosted
-  models were not re-run, so their attack counts above are from the wider guard.
+  demo"). Replaying every saved answer from the four hosted models through the narrower guard
+  left each score, attack count and predicted item unchanged
+  ([`reports/guard-replay.md`](reports/guard-replay.md)). That is a replay of the original
+  answers, not a fresh run of the models.
 
 ## License
 
