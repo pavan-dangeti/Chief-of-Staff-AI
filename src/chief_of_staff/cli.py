@@ -7,11 +7,11 @@ import contextlib
 import logging
 import os
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Coroutine, Iterator, Sequence
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, TypeVar
 
 import typer
 from rich.console import Console
@@ -22,6 +22,7 @@ from rich.progress import Progress
 from chief_of_staff.config import Settings
 from chief_of_staff.errors import ConfigurationError, require_extra
 from chief_of_staff.extraction.factory import build_prioritizer, build_service
+from chief_of_staff.extraction.service import ExtractionService
 from chief_of_staff.ingest.files import load_messages
 from chief_of_staff.ingest.mbox import load_mbox
 from chief_of_staff.ingest.slack import SlackClient, load_slack_export
@@ -43,6 +44,7 @@ app.add_typer(gmail_app, name="gmail")
 app.add_typer(slack_app, name="slack")
 app.add_typer(pilot_app, name="pilot")
 console = Console()
+T = TypeVar("T")
 errors = Console(stderr=True)
 
 
@@ -75,8 +77,9 @@ class LedgerFilter(StrEnum):
     ALL = "all"
 
 
-def _settings(backend: Backend, no_cache: bool, cache: Path | None = None) -> Settings:
-    overrides: dict[str, Any] = {"backend": backend.value}
+def _settings(backend: Backend | None, no_cache: bool, cache: Path | None = None) -> Settings:
+    # No --backend leaves the choice to COS_BACKEND, then to "auto".
+    overrides: dict[str, Any] = {} if backend is None else {"backend": backend.value}
     if no_cache:
         overrides["cache_enabled"] = False
     if cache is not None:
@@ -97,7 +100,9 @@ def run(
         Path | None, typer.Option(help="Slack workspace export directory.")
     ] = None,
     mbox: Annotated[Path | None, typer.Option(help="Mailbox file, e.g. Gmail Takeout.")] = None,
-    backend: Annotated[Backend, typer.Option(help="Extraction backend.")] = Backend.AUTO,
+    backend: Annotated[
+        Backend | None, typer.Option(help="Extraction backend; default COS_BACKEND, then auto.")
+    ] = None,
     output_format: Annotated[OutputFormat, typer.Option("--format")] = OutputFormat.TABLE,
     output: Annotated[Path | None, typer.Option(help="Write the digest to a file.")] = None,
     as_of: Annotated[datetime | None, typer.Option(help="Reference time for due dates.")] = None,
@@ -125,12 +130,9 @@ def run(
     with _user_errors():
         service = build_service(settings)
         prioritizer = build_prioritizer(settings, policy)
-        try:
-            digest = asyncio.run(
-                _run(service, prioritizer, messages, as_of, graph, settings.prefilter)
-            )
-        finally:
-            service.close()
+        digest = _run_and_close(
+            service, _run(service, prioritizer, messages, as_of, graph, settings.prefilter)
+        )
 
     if ledger:
         with Ledger(ledger) as store:
@@ -139,6 +141,18 @@ def run(
             f"[dim]ledger: +{result.added} new, {result.updated} updated, {result.closed} closed[/]"
         )
     _emit(digest, output_format, output)
+
+
+def _run_and_close(service: ExtractionService, work: Coroutine[Any, Any, T]) -> T:
+    """Run ``work`` and close the service's clients on the same event loop."""
+
+    async def main() -> T:
+        try:
+            return await work
+        finally:
+            await service.aclose()
+
+    return asyncio.run(main())
 
 
 async def _run(
@@ -186,7 +200,9 @@ def _emit(digest: Digest, output_format: OutputFormat, output: Path | None) -> N
 @app.command("eval")
 def evaluate_command(
     split: Annotated[str, typer.Option(help="dev, test or injection.")] = "test",
-    backend: Annotated[Backend, typer.Option()] = Backend.AUTO,
+    backend: Annotated[
+        Backend | None, typer.Option(help="Backend to score; default COS_BACKEND, then auto.")
+    ] = None,
     data_dir: Annotated[Path, typer.Option()] = Path("datasets/eval"),
     report: Annotated[Path | None, typer.Option(help="Write a Markdown report here.")] = None,
     json_out: Annotated[
@@ -204,24 +220,24 @@ def evaluate_command(
     from chief_of_staff.evaluation.report import to_markdown
     from chief_of_staff.evaluation.runner import evaluate, load_split
 
-    if model is not None and backend in (Backend.AUTO, Backend.HEURISTIC):
+    if model is not None and backend in (None, Backend.AUTO, Backend.HEURISTIC):
         raise typer.BadParameter("--model needs --backend anthropic, gemini or nvidia")
     settings = _settings(backend, no_cache, cache)
-    if model is not None:
+    if model is not None and backend is not None:
         settings = settings.model_copy(update={f"{backend.value}_model": model})
     with _user_errors():
         service = build_service(settings, fallback=False)
         examples = load_split(data_dir / f"{split}.jsonl")
-        with contextlib.closing(service):
-            result = asyncio.run(
-                evaluate(
-                    examples,
-                    service,
-                    split=split,
-                    prefilter=settings.prefilter,
-                    bootstrap_iterations=bootstrap,
-                )
-            )
+        result = _run_and_close(
+            service,
+            evaluate(
+                examples,
+                service,
+                split=split,
+                prefilter=settings.prefilter,
+                bootstrap_iterations=bootstrap,
+            ),
+        )
     markdown = to_markdown(result)
     if result.failures:
         # An incomplete run would score failures as misses; refuse to publish it.
@@ -316,12 +332,9 @@ def pilot_run(
     settings = _settings(backend, no_cache=False)
     with _user_errors():
         service = build_service(settings, fallback=False)
-        try:
-            digest = asyncio.run(
-                _run(service, build_prioritizer(settings), messages, None, False, True)
-            )
-        finally:
-            service.close()
+        digest = _run_and_close(
+            service, _run(service, build_prioritizer(settings), messages, None, False, True)
+        )
         run = PilotRun(
             participant=participant,
             run_id=uuid.uuid4().hex[:8],

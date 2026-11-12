@@ -181,6 +181,7 @@ class RunStats(BaseModel):
     messages_total: int = 0
     messages_skipped: int = 0
     messages_failed: int = 0
+    messages_truncated: int = 0
     llm_calls: int = 0
     cache_hits: int = 0
     fallbacks: int = 0

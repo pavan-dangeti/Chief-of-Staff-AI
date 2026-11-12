@@ -62,10 +62,11 @@ def sender_verified(headers: list[dict[str, str]]) -> bool | None:
         parsed = authres.AuthenticationResultsHeader.parse(f"Authentication-Results: {value}")
     except authres.AuthResError:
         return None
-    dmarc = [result for result in parsed.results if result.method == "dmarc"]
+    dmarc = [result for result in parsed.results if str(result.method).lower() == "dmarc"]
     if len(dmarc) != 1:
         return None
-    if dmarc[0].result == "fail":
+    verdict = str(dmarc[0].result).lower()
+    if verdict == "fail":
         return False
     address = from_address(headers)
     claimed = {
@@ -73,7 +74,7 @@ def sender_verified(headers: list[dict[str, str]]) -> bool | None:
         for prop in dmarc[0].properties
         if (prop.type, prop.name) == ("header", "from")
     }
-    if dmarc[0].result != "pass" or address is None or not claimed:
+    if verdict != "pass" or address is None or not claimed:
         return None
     if claimed != {address.rpartition("@")[2]}:
         return False

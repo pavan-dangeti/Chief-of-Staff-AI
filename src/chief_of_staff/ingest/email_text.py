@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import html
+import logging
 import re
+
+logger = logging.getLogger(__name__)
+# Ends a body that was cut, so a reader (and the model) can tell the message is incomplete.
+TRUNCATION_MARK = "\n[message truncated]"
 
 _HTML_HINT = re.compile(
     r"<!DOCTYPE|<html[\s>]|<body[\s>]|&zwnj;|<div[\s>]|<table[\s>]|<p[\s>]", re.IGNORECASE
@@ -42,5 +47,10 @@ def strip_quoted_reply(text: str) -> str:
 
 
 def clean_email_body(body: str, *, max_chars: int = 4000) -> str:
+    """The text a person wrote. A longer body is cut at ``max_chars`` and ends in the mark."""
     text = html_to_text(body) if looks_like_html(body) else _INVISIBLE.sub("", body)
-    return strip_quoted_reply(text)[:max_chars].strip()
+    text = strip_quoted_reply(text)
+    if len(text) <= max_chars:
+        return text
+    logger.info("email body cut from %d to %d characters", len(text), max_chars)
+    return text[:max_chars].strip() + TRUNCATION_MARK

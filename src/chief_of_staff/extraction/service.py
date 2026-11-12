@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 
 from chief_of_staff.dates import DateOrder
@@ -90,6 +90,7 @@ class ExtractionService:
     escalation_threshold: float = 0.55
     date_order: DateOrder = "DMY"
     prices: dict[str, tuple[float, float]] = field(default_factory=dict)
+    closers: Sequence[Callable[[], Awaitable[None]]] = ()
 
     def __post_init__(self) -> None:
         if not self.chain:
@@ -99,6 +100,14 @@ class ExtractionService:
     def close(self) -> None:
         if self.cache is not None:
             self.cache.close()
+
+    async def aclose(self) -> None:
+        """Close provider clients too. Call it on the event loop that made the requests."""
+        try:
+            for close in self.closers:
+                await close()
+        finally:
+            self.close()
 
     @property
     def primary_label(self) -> str:

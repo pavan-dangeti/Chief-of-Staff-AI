@@ -66,7 +66,7 @@ async def recheck(model: str, message_ids: list[str], spacing_s: float) -> dict[
                 times[message_id] = result.trace.call_ms / 1000
             await asyncio.sleep(spacing_s)
     finally:
-        service.close()
+        await service.aclose()
     return times
 
 

@@ -10,7 +10,12 @@ from typing import Any
 import httpx
 import pytest
 
-from chief_of_staff.ingest.email_text import clean_email_body, html_to_text, strip_quoted_reply
+from chief_of_staff.ingest.email_text import (
+    TRUNCATION_MARK,
+    clean_email_body,
+    html_to_text,
+    strip_quoted_reply,
+)
 from chief_of_staff.ingest.files import load_messages
 from chief_of_staff.ingest.gmail import fetch_messages, is_automated, parse_gmail_message
 from chief_of_staff.ingest.slack import SlackClient, load_slack_export
@@ -64,7 +69,8 @@ def test_email_cleaning_strips_html_quotes_and_signatures() -> None:
     assert (
         clean_email_body("Ship it Friday.\n--\nSam | CTO\nSent from my phone") == "Ship it Friday."
     )
-    assert clean_email_body("x" * 5000, max_chars=100) == "x" * 100
+    assert clean_email_body("x" * 5000, max_chars=100) == "x" * 100 + TRUNCATION_MARK
+    assert clean_email_body("x" * 100, max_chars=100) == "x" * 100
 
 
 def test_slack_export_resolves_mentions_threads_and_drops_noise(tmp_path: Path) -> None:

@@ -124,6 +124,8 @@ def test_slack_verification_uses_stable_user_ids(
         ("mx.google.com; spf=pass; dkim=pass; dmarc=pass (p=REJECT) header.from=acme.io", True),
         ("mx.google.com; spf=fail; dmarc=fail (p=NONE) header.from=acme.io", False),
         ("mx.google.com; spf=pass", None),
+        ("MX.Google.com; DMARC=FAIL header.from=acme.io", False),
+        ("MX.Google.com; DMARC=Pass header.from=ACME.io", True),
         # A pass for another domain than the From address is a spoof, not an unknown.
         ("mx.google.com; dmarc=pass header.from=evil.io", False),
         # Only a trusted receiving server's pass counts; anyone can add this header to mail.
