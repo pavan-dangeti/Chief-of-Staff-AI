@@ -131,6 +131,13 @@ def test_slack_verification_uses_stable_user_ids(
         # "dmarc=pass" inside a comment or another field is not the verdict.
         ("mx.google.com; spf=pass (dmarc=pass header.from=acme.io) smtp.mailfrom=x@evil.io", None),
         ("mx.google.com; dmarc=fail (dmarc=pass) header.from=acme.io", False),
+        # A quoted mailbox in another field must not be split into a result of its own.
+        (
+            'mx.google.com; spf=pass smtp.mailfrom="a; dmarc=pass header.from=acme.io x"@evil.io',
+            None,
+        ),
+        ('mx.google.com; spf=pass (a "; dmarc=pass header.from=acme.io;" b) x', None),
+        ('mx.google.com; spf=pass smtp.mailfrom="a; dmarc=pass header.from=acme.io', None),
         ("mx.google.com; dmarc=pass header.from=acme.io; dmarc=pass header.from=acme.io", None),
     ],
 )
