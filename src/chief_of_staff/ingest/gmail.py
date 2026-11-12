@@ -11,6 +11,8 @@ from email.utils import getaddresses, parseaddr, parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
+import authres
+
 from chief_of_staff.errors import require_extra
 from chief_of_staff.ingest.email_text import clean_email_body
 from chief_of_staff.models import Message, Source
@@ -33,11 +35,6 @@ def is_automated(headers: list[dict[str, str]]) -> bool:
     return bool(_NOREPLY.search(parseaddr(header(headers, "From"))[1]))
 
 
-# A quoted string or an innermost comment: both can carry text the sender chose.
-_OPAQUE = re.compile(r'"(?:[^"\\]|\\.)*"|\((?:[^()"\\]|\\.)*\)')
-_HEADER_FROM = re.compile(r"\bheader\.from=([^\s;]+)", re.IGNORECASE)
-
-
 def _trusted_servers() -> frozenset[str]:
     """Receiving servers whose "dmarc=pass" is believed; anyone can add the header below theirs."""
     names = os.environ.get("COS_TRUSTED_MAIL_SERVERS", "mx.google.com")
@@ -55,25 +52,32 @@ def sender_verified(headers: list[dict[str, str]]) -> bool | None:
 
     ``False`` for a failure, or a pass that names another domain than the From address. ``True``
     only for a pass from a trusted receiving server. Everything else is unknown (``None``).
+
+    The header is read by ``authres``, the RFC 8601 parser: comments and quoted strings carry
+    text the sender chose, and a hand-written reader got them wrong (tests/
+    test_authentication_results.py).
     """
-    value = header(headers, "Authentication-Results")
-    while _OPAQUE.search(value):  # comments nest, so strip from the inside out
-        value = _OPAQUE.sub(" ", value)
-    if re.search(r'["()]', value):  # unbalanced: the header cannot be read safely
+    value = " ".join(header(headers, "Authentication-Results").split())
+    try:
+        parsed = authres.AuthenticationResultsHeader.parse(f"Authentication-Results: {value}")
+    except authres.AuthResError:
         return None
-    server, *results = (part.strip() for part in value.split(";"))
-    dmarc = [result for result in results if result.lower().startswith("dmarc=")]
-    if len(dmarc) != 1:  # none, or a second one smuggled in through another field
+    dmarc = [result for result in parsed.results if result.method == "dmarc"]
+    if len(dmarc) != 1:
         return None
-    verdict = dmarc[0].split()[0][len("dmarc=") :].lower()
-    if verdict == "fail":
+    if dmarc[0].result == "fail":
         return False
-    address, claimed = from_address(headers), _HEADER_FROM.search(dmarc[0])
-    if verdict != "pass" or address is None or claimed is None:
+    address = from_address(headers)
+    claimed = {
+        str(prop.value).lower()
+        for prop in dmarc[0].properties
+        if (prop.type, prop.name) == ("header", "from")
+    }
+    if dmarc[0].result != "pass" or address is None or not claimed:
         return None
-    if claimed.group(1).lower() != address.rpartition("@")[2]:
+    if claimed != {address.rpartition("@")[2]}:
         return False
-    return True if server.lower() in _trusted_servers() else None
+    return True if (parsed.authserv_id or "").lower() in _trusted_servers() else None
 
 
 def _walk(payload: dict[str, Any]) -> Iterator[dict[str, Any]]:

@@ -55,7 +55,7 @@ column. Labelled data is synthetic (see [`datasets/`](datasets/README.md)).
 | Provider outage | Time to fall back **2.2 s** | 44.8 s with the circuit breaker off | Same run, provider down | `make production-run` |
 | Latency, 100 messages at 400 ms per call | **3.1 s** cold, **0.16 s** from cache | 190 s for the v1 sequential loop | [`reports/benchmark.md`](reports/benchmark.md) | `make bench` |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache, zero errors | — | [`reports/production-run.md`](reports/production-run.md) | `make production-run` |
-| Code quality | 362 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
+| Code quality | 366 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
 
 The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
 evaluated**: no Anthropic API access was available for this project, so no Claude numbers are

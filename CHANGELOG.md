@@ -12,9 +12,10 @@ All notable changes to this project are documented here. The format follows
   redacted. Metadata is now masked with the body's placeholders.
 - An unverified sender's message could still create items with `COS_PREFILTER=false` or through
   `POST /v1/extract`. The check now lives in the extraction service, so it holds on every path.
-- Email sender verification read "dmarc=pass" anywhere in the Authentication-Results header. It now
-  parses the header, requires the result to name the From address's domain, and believes a pass
-  only from a trusted receiving server (`COS_TRUSTED_MAIL_SERVERS`).
+- Email sender verification read "dmarc=pass" anywhere in the Authentication-Results header. The
+  header is now parsed with `authres` (RFC 8601), the result must name the From address's domain,
+  and a pass is believed only from a trusted receiving server (`COS_TRUSTED_MAIL_SERVERS`). A
+  property test compares the verdict with the reference parser on generated headers.
 - Optional `COS_API_KEY`: when set, `/v1` routes require a bearer key.
 - The Gmail OAuth token file is created with owner-only permissions; CI workflows declare
   read-only token permissions.
