@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.3.0] - 2026-11-12
 
 ### Security
 
@@ -22,8 +22,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- `auto` now prefers the providers evaluated live: NVIDIA, then Gemini, then Anthropic. The
-  Anthropic backend is labelled as not verified against the live API.
+- **New default backend order.** `auto` now prefers the providers evaluated live: NVIDIA, then
+  Gemini, then Anthropic (it was Anthropic, NVIDIA, Gemini). With an Anthropic key and an NVIDIA
+  or Gemini key both set, the default backend changes; set `COS_BACKEND=anthropic` to keep the old
+  choice. The Anthropic backend is labelled as not verified against the live API.
 - An email body cut at 4,000 characters ends in `[message truncated]`, is logged, and is counted
   in the digest (`messages_truncated`) and the table footer.
 - GitHub Actions are pinned to commit SHAs.

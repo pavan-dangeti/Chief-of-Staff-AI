@@ -184,7 +184,10 @@ regression check, not a held-out score, because this suite informed the guard.
 ### Backend comparison
 
 All runs used the same prompt (v2.1.0), one request at a time or two, and a fresh cache, so every
-answer is a live call. Cost is a **list-price estimate**: the tokens each model reported,
+answer is a live call. Every hosted-model figure in this README is from those original live runs
+(29 September to 1 October 2026). Replaying the saved answers through the current code, after the
+injection guard and verification changes in 2.3.0, left every score, attack count and predicted
+item unchanged ([`reports/guard-replay.md`](reports/guard-replay.md)). Cost is a **list-price estimate**: the tokens each model reported,
 multiplied by a named provider's published price for that model, dated in
 [`docs/pricing.md`](docs/pricing.md). The runs themselves cost nothing (free tiers).
 
