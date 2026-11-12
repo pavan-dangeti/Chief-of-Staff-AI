@@ -33,7 +33,8 @@ def is_automated(headers: list[dict[str, str]]) -> bool:
     return bool(_NOREPLY.search(parseaddr(header(headers, "From"))[1]))
 
 
-_COMMENT = re.compile(r"\([^()]*\)")
+# A quoted string or an innermost comment: both can carry text the sender chose.
+_OPAQUE = re.compile(r'"(?:[^"\\]|\\.)*"|\((?:[^()"\\]|\\.)*\)')
 _HEADER_FROM = re.compile(r"\bheader\.from=([^\s;]+)", re.IGNORECASE)
 
 
@@ -56,8 +57,10 @@ def sender_verified(headers: list[dict[str, str]]) -> bool | None:
     only for a pass from a trusted receiving server. Everything else is unknown (``None``).
     """
     value = header(headers, "Authentication-Results")
-    while _COMMENT.search(value):  # comments can nest and can carry sender-chosen text
-        value = _COMMENT.sub(" ", value)
+    while _OPAQUE.search(value):  # comments nest, so strip from the inside out
+        value = _OPAQUE.sub(" ", value)
+    if re.search(r'["()]', value):  # unbalanced: the header cannot be read safely
+        return None
     server, *results = (part.strip() for part in value.split(";"))
     dmarc = [result for result in results if result.lower().startswith("dmarc=")]
     if len(dmarc) != 1:  # none, or a second one smuggled in through another field
