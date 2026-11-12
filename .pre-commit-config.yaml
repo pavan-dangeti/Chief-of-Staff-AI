@@ -12,3 +12,12 @@ repos:
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: trailing-whitespace
+  - repo: local
+    hooks:
+      # Needs: pre-commit install --hook-type commit-msg
+      - id: no-attribution-lines
+        name: commit messages carry no attribution trailers
+        language: pygrep
+        entry: '^\s*(co-authored-by:|(🤖\s*)?generated with)'
+        args: [--ignore-case, --multiline]
+        stages: [commit-msg]

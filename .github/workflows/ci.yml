@@ -10,6 +10,25 @@ permissions:
   contents: read
 
 jobs:
+  commit-messages:
+    # Commit messages hold the change and its reason; trailers crediting other authors or tools are not used.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Commit messages carry no attribution trailers
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          # A new branch or a force push has no usable base: check everything reachable from HEAD.
+          if git cat-file -e "${BASE}^{commit}" 2>/dev/null; then range="${BASE}..${HEAD}"; else range="${HEAD}"; fi
+          bad=$(git log --format='%h %s' -i -E --grep='^[[:space:]]*(co-authored-by:|(🤖[[:space:]]*)?generated with)' "$range")
+          if [ -n "$bad" ]; then
+            echo "Commits with an attribution trailer:"; echo "$bad"; exit 1
+          fi
+
   quality:
     runs-on: ubuntu-latest
     strategy:
