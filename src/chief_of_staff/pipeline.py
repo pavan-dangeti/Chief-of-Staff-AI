@@ -8,6 +8,7 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 
 from chief_of_staff.extraction.service import ExtractionService, MessageExtraction
+from chief_of_staff.ingest.email_text import TRUNCATION_MARK
 from chief_of_staff.lifecycle import apply_completions, deduplicate
 from chief_of_staff.models import Digest, Message, RunStats, SkippedMessage, Status
 from chief_of_staff.prefilter import skip_reason
@@ -79,6 +80,7 @@ def build_digest(
         messages_total=len(messages),
         messages_skipped=len(skipped),
         messages_failed=len(failed),
+        messages_truncated=sum(m.text.endswith(TRUNCATION_MARK) for m in messages),
         llm_calls=sum(t.attempts for t in traces),
         cache_hits=sum(t.cache_hit for t in traces),
         fallbacks=sum(t.fallback for t in traces),

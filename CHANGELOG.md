@@ -20,6 +20,14 @@ All notable changes to this project are documented here. The format follows
 - The Gmail OAuth token file is created with owner-only permissions; CI workflows declare
   read-only token permissions.
 
+### Changed
+
+- `auto` now prefers the providers evaluated live: NVIDIA, then Gemini, then Anthropic. The
+  Anthropic backend is labelled as not verified against the live API.
+- An email body cut at 4,000 characters ends in `[message truncated]`, is logged, and is counted
+  in the digest (`messages_truncated`) and the table footer.
+- GitHub Actions are pinned to commit SHAs.
+
 ### Added
 
 - A `[people]` table in the priority policy gives roles to Slack user IDs and email addresses,
@@ -27,6 +35,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `cos run` and `cos eval` ignored `COS_BACKEND`: the `--backend` default of `auto` overrode it.
+- Provider HTTP and SDK clients are closed on shutdown (CLI and API).
+- The simulator benchmarks (`make production-run`, `make scale`) could call a real provider when a
+  key was present in the shell or `.env`; they now blank those keys.
 - The injection guard dropped ordinary tasks that mention an AI ("ship the AI agent demo", "send
   the offer letter to the assistant"). It now matches text addressed to one.
 - The ledger reopened a closed item when a later run saw the task again without its completion,

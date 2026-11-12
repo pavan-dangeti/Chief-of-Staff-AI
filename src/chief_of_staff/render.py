@@ -44,6 +44,11 @@ def render_table(digest: Digest, console: Console) -> None:
         f"{stats.duplicates_merged} duplicates merged, {stats.completions_matched} closed, "
         f"{stats.wall_time_ms:.0f} ms[/]"
     )
+    if stats.messages_truncated:
+        console.print(
+            f"[yellow]{stats.messages_truncated} long email(s) were cut at 4,000 characters; "
+            "items after that point are not extracted.[/]"
+        )
 
 
 def render_markdown(digest: Digest) -> str:

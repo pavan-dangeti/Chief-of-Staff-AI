@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import mailbox
 from datetime import timedelta
 from email.message import EmailMessage
@@ -15,8 +16,10 @@ from chief_of_staff.api import create_app
 from chief_of_staff.cli import app
 from chief_of_staff.config import Settings
 from chief_of_staff.extraction.factory import build_prioritizer, build_service
+from chief_of_staff.extraction.openai_compat_backend import create_openai_compat_client
 from chief_of_staff.extraction.prompt import render_message
 from chief_of_staff.extraction.verify import is_ai_directed
+from chief_of_staff.ingest.email_text import TRUNCATION_MARK, clean_email_body
 from chief_of_staff.ingest.gmail import parse_gmail_message
 from chief_of_staff.ingest.mbox import load_mbox
 from chief_of_staff.ledger import Ledger
@@ -24,7 +27,7 @@ from chief_of_staff.models import ActionItem, Digest, Message, Source, Status
 from chief_of_staff.pipeline import Pipeline
 from chief_of_staff.prioritization import Prioritizer, PriorityPolicy
 from chief_of_staff.redaction import Redactor
-from helpers import MONDAY, make_action_item, make_message
+from helpers import MONDAY, ROOT, make_action_item, make_message
 
 OFFLINE = Settings(backend="heuristic", cache_enabled=False, trace_path=None, _env_file=None)
 
@@ -202,3 +205,47 @@ def test_gmail_message_without_a_date_header_uses_the_receive_time() -> None:
 def test_ledger_show_rejects_an_unknown_status_as_a_usage_error(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["ledger", "show", "--path", str(tmp_path), "--status", "x"])
     assert result.exit_code == 2 and "Traceback" not in result.output
+
+
+async def test_the_service_closes_the_clients_it_opened_and_only_those() -> None:
+    keys = {"nvidia_api_key": "k", "gemini_api_key": "k", "anthropic_api_key": "k"}
+    settings = Settings(cache_enabled=False, trace_path=None, _env_file=None, **keys)
+    service = build_service(settings)
+    nvidia, _gemini, anthropic = (b.extractor._client for b in service.chain if b.remote)
+    await service.aclose()
+    # An unclosed Gemini client would fail the run: ResourceWarning is an error in this suite.
+    assert nvidia.is_closed and anthropic.is_closed()
+
+    mine = create_openai_compat_client("https://example.invalid/v1", "k", 5.0)
+    await build_service(settings, nvidia_client=mine).aclose()
+    assert not mine.is_closed
+    await mine.aclose()
+
+
+async def test_a_long_email_is_marked_truncated_and_counted() -> None:
+    long = make_message(clean_email_body("Leo, please send the deck by Friday. " + "x " * 3000))
+    assert long.text.endswith(TRUNCATION_MARK) and len(long.text) <= 4000 + len(TRUNCATION_MARK)
+    digest = await digest_of(long, make_message("Leo, please send the deck.", id="m2"))
+    assert digest.stats.messages_truncated == 1
+
+
+def test_cli_honours_cos_backend_when_no_backend_flag_is_given(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`cos run` used to pass --backend auto over COS_BACKEND, so the setting was ignored."""
+    monkeypatch.setenv("COS_BACKEND", "heuristic")
+    monkeypatch.setenv("NVIDIA_API_KEY", "would-be-picked-by-auto")
+    monkeypatch.setenv("COS_TRACE_PATH", str(tmp_path / "traces.jsonl"))
+    out = tmp_path / "digest.json"
+    args = [
+        "run",
+        "--slack",
+        str(ROOT / "datasets/samples/slack.json"),
+        "--format",
+        "json",
+        "--output",
+        str(out),
+    ]
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert {item["backend"] for item in json.loads(out.read_text())["open_items"]} == {"heuristic"}

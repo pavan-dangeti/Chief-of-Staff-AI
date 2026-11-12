@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
@@ -48,12 +49,16 @@ def build_service(
     gemini_key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
     nvidia_key = settings.nvidia_api_key.get_secret_value() if settings.nvidia_api_key else None
 
+    # Clients opened here are closed by the service; ones passed in belong to the caller.
+    closers: list[Callable[[], Awaitable[None]]] = []
+
     def anthropic_backend(model: str) -> Backend:
         client = anthropic_client
         if client is None:
             if anthropic_key is None:
                 raise ConfigurationError("backend 'anthropic' needs ANTHROPIC_API_KEY")
             client = create_anthropic_client(anthropic_key, settings.request_timeout_s)
+            closers.append(client.close)
         extractor = AnthropicExtractor(client, model)
         return _remote(extractor, settings.anthropic_rpm, settings)
 
@@ -63,6 +68,7 @@ def build_service(
             if gemini_key is None:
                 raise ConfigurationError("backend 'gemini' needs GEMINI_API_KEY")
             client = create_gemini_client(gemini_key, settings.request_timeout_s)
+            closers.append(client.aio.aclose)
         extractor = GeminiExtractor(client, model, temperature=settings.gemini_temperature)
         return _remote(extractor, settings.gemini_rpm, settings)
 
@@ -74,6 +80,7 @@ def build_service(
             client = create_openai_compat_client(
                 settings.nvidia_base_url, nvidia_key, settings.request_timeout_s
             )
+            closers.append(client.aclose)
         extractor = OpenAICompatExtractor(client, model, extra_body=settings.nvidia_extra_body)
         return _remote(extractor, settings.nvidia_rpm, settings)
 
@@ -84,13 +91,13 @@ def build_service(
     }
     # Order sets the fallback order: primary first, then the other providers that have keys.
     backends = {
+        "nvidia": (nvidia_backend, settings.nvidia_model, settings.nvidia_escalation_model),
+        "gemini": (gemini_backend, settings.gemini_model, settings.gemini_escalation_model),
         "anthropic": (
             anthropic_backend,
             settings.anthropic_model,
             settings.anthropic_escalation_model,
         ),
-        "nvidia": (nvidia_backend, settings.nvidia_model, settings.nvidia_escalation_model),
-        "gemini": (gemini_backend, settings.gemini_model, settings.gemini_escalation_model),
     }
 
     chain: list[Backend] = []
@@ -113,6 +120,7 @@ def build_service(
         chain=chain,
         escalation=escalation,
         cache=cache,
+        closers=closers,
         tracer=tracer or Tracer(settings.trace_path),
         redactor=Redactor() if settings.redact_pii else NoopRedactor(),
         max_concurrency=settings.max_concurrency,

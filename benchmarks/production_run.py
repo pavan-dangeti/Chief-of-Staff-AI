@@ -167,6 +167,9 @@ def main(report: Path) -> None:
     env = {
         **os.environ,
         **SIM_ENV,
+        # Blank out real provider keys from the shell or .env: only the simulator may be called.
+        **dict.fromkeys(("NVIDIA_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"), ""),
+        **dict.fromkeys(("COS_NVIDIA_API_KEY", "COS_GEMINI_API_KEY"), ""),
         "ANTHROPIC_API_KEY": "sk-simulated",
         "ANTHROPIC_BASE_URL": sim_url,
         "COS_BACKEND": "anthropic",

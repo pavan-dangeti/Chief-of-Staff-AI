@@ -83,10 +83,11 @@ class Settings(BaseSettings):
     def resolved_backend(self) -> Literal["heuristic", "anthropic", "gemini", "nvidia"]:
         if self.backend != "auto":
             return self.backend
-        if self.anthropic_api_key:
-            return "anthropic"
+        # The providers evaluated live come first; Anthropic has only been contract-tested.
         if self.nvidia_api_key:
             return "nvidia"
         if self.gemini_api_key:
             return "gemini"
+        if self.anthropic_api_key:
+            return "anthropic"
         return "heuristic"

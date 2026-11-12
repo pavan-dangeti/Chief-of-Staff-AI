@@ -30,7 +30,7 @@ across runs until a later message reports it done. Design rationale: [`docs/desi
 
 | | |
 |---|---|
-| **Grounded extraction** | Claude, Gemini or any OpenAI-compatible model (NVIDIA API Catalog) with schema-constrained output; every item must quote its source, and hallucinated quotes are dropped. |
+| **Grounded extraction** | Gemini or any OpenAI-compatible model (NVIDIA API Catalog), evaluated live, and Claude (**not verified against the live API**), with schema-constrained output; every item must quote its source, and hallucinated quotes are dropped. |
 | **Deterministic deadlines** | "24 hours before Tuesday's meeting", "by the 20th", "30/09", "kal tak" are resolved by tested code, not by the model. |
 | **Explainable priority** | Scored outside the model from role, keyword signals and deadline proximity, so the model cannot set it and every point is explained. |
 | **Cross-message state** | Duplicates across Slack and email are merged; a later "I reverted the hotfix" closes the original request, even in a later run. |
@@ -55,11 +55,12 @@ column. Labelled data is synthetic (see [`datasets/`](datasets/README.md)).
 | Provider outage | Time to fall back **2.2 s** | 44.8 s with the circuit breaker off | Same run, provider down | `make production-run` |
 | Latency, 100 messages at 400 ms per call | **3.1 s** cold, **0.16 s** from cache | 190 s for the v1 sequential loop | [`reports/benchmark.md`](reports/benchmark.md) | `make bench` |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache, zero errors | — | [`reports/production-run.md`](reports/production-run.md) | `make production-run` |
-| Code quality | 366 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
+| Code quality | 372 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
 
-The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
-evaluated**: no Anthropic API access was available for this project, so no Claude numbers are
-published. `make eval-llm BACKEND=anthropic` produces them for anyone with a key.
+The Anthropic backend is implemented and contract-tested against the SDK, but it is **not
+verified against the live API**: no Anthropic API access was available for this project, so no
+Claude numbers are published, its default model IDs are untested, and `auto` picks it only when
+no NVIDIA or Gemini key is set. `make eval-llm BACKEND=anthropic` produces them for anyone with a key.
 
 ## Architecture
 
@@ -334,7 +335,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 make demo                          # offline rules, no API key needed
-export NVIDIA_API_KEY=nvapi-...       # or GEMINI_API_KEY or ANTHROPIC_API_KEY
+export NVIDIA_API_KEY=nvapi-...       # or GEMINI_API_KEY
 make demo                          # same command, now LLM-backed with offline fallback
 ```
 
@@ -378,8 +379,8 @@ Settings come from the environment (prefix `COS_`) or a `.env` file; see
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `COS_BACKEND` | `auto` | `anthropic`, `nvidia`, `gemini`, `heuristic`, or `auto` (picks by available key, in that order) |
-| `COS_ANTHROPIC_MODEL` | `claude-haiku-4-5-20251001` | Primary extraction model |
+| `COS_BACKEND` | `auto` | `nvidia`, `gemini`, `anthropic`, `heuristic`, or `auto` (picks by available key, in that order: the providers evaluated live come first) |
+| `COS_ANTHROPIC_MODEL` | `claude-haiku-4-5-20251001` | Claude model; not verified against the live API |
 | `COS_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Primary or fallback provider |
 | `COS_NVIDIA_MODEL` | `z-ai/glm-5.3-flash` | Any chat model on an OpenAI-compatible endpoint |
 | `COS_NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | NVIDIA API Catalog by default; any OpenAI-compatible host works |
@@ -467,6 +468,8 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
   senders explicitly, so its sender-identity results assume a signal real data may not carry.
 - DeepSeek has no result on the externally written set (its endpoint was down during the runs).
 - Priority weights are sensible defaults, not yet learned from which items people act on.
+- Email bodies are cut at 4,000 characters. A cut body ends in `[message truncated]`, the digest
+  counts them (`messages_truncated`), and anything after the cut is not extracted.
 - The HTTP API has one shared key (`COS_API_KEY`) and is open when it is unset; there are no
   per-user keys or rate limits, so deploy it behind your gateway.
 - Slack exports and mailboxes carry no roles: without a `[people]` table in the policy file, every

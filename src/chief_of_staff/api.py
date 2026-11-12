@@ -39,7 +39,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
-        extraction.close()
+        await extraction.aclose()
 
     app = FastAPI(title="Chief-of-Staff AI", version=__version__, lifespan=lifespan)
     expected = settings.api_key.get_secret_value() if settings.api_key else None
