@@ -55,7 +55,7 @@ column. Labelled data is synthetic (see [`datasets/`](datasets/README.md)).
 | Provider outage | Time to fall back **2.2 s** | 44.8 s with the circuit breaker off | Same run, provider down | `make production-run` |
 | Latency, 100 messages at 400 ms per call | **3.1 s** cold, **0.16 s** from cache | 190 s for the v1 sequential loop | [`reports/benchmark.md`](reports/benchmark.md) | `make bench` |
 | HTTP API, 32 concurrent clients | p50 **59 ms**, **500 req/s** from cache, zero errors | — | [`reports/production-run.md`](reports/production-run.md) | `make production-run` |
-| Code quality | 353 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
+| Code quality | 359 tests, 98% line and branch coverage, `mypy --strict`, `ruff` | — | CI on Python 3.11–3.14, macOS and Windows install checks | `make check` |
 
 The Anthropic backend is implemented and contract-tested against the SDK, but it was **not
 evaluated**: no Anthropic API access was available for this project, so no Claude numbers are
@@ -391,6 +391,7 @@ Settings come from the environment (prefix `COS_`) or a `.env` file; see
 | `COS_REDACT_PII` | `true` | Mask PII and secrets before API calls |
 | `COS_DATE_ORDER` | `DMY` | How to read `03/04`-style dates |
 | `COS_POLICY_PATH` | unset | Priority policy TOML for every command and the API; `--policy` overrides it |
+| `COS_TRUSTED_MAIL_SERVERS` | `mx.google.com` | Receiving servers whose DMARC pass verifies an email sender, comma-separated |
 | `COS_API_KEY` | unset | When set, `/v1` routes require `Authorization: Bearer <key>`; `/healthz` stays open |
 | `COS_PRICES_PER_MTOK` | dated table in [`docs/pricing.md`](docs/pricing.md) | `{"model": [input, output]}` in USD per 1M tokens, for cost estimates |
 
@@ -470,7 +471,9 @@ Claude API when an `ANTHROPIC_API_KEY` secret is configured.
   per-user keys or rate limits, so deploy it behind your gateway.
 - Slack exports and mailboxes carry no roles: without a `[people]` table in the policy file, every
   such sender scores as `unknown`. The table matches Slack user IDs and email addresses, and only
-  for verified senders, so mail with no DMARC result never gets a role.
+  for verified senders, so mail with no DMARC result, or one from a server not in `COS_TRUSTED_MAIL_SERVERS`, never gets a
+  role. DMARC proves the domain, not the mailbox: a domain that lets its users send as each other
+  can still be spoofed from inside.
 - A completion closes a task for good; the ledger has no reopen. Any verified sender can report a
   task done, so a false "done" from inside the workspace closes it. `resolved_by` records which
   message did.

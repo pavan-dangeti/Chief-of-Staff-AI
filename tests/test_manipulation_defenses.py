@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from chief_of_staff.extraction.verify import is_ai_directed, verify_items
-from chief_of_staff.ingest.gmail import sender_verified
+from chief_of_staff.ingest.gmail import from_address, sender_verified
 from chief_of_staff.ingest.slack import normalize_slack_message
 from chief_of_staff.models import RawExtraction
 from chief_of_staff.prefilter import skip_reason
@@ -121,11 +121,30 @@ def test_slack_verification_uses_stable_user_ids(
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        ("mx.google.com; spf=pass; dkim=pass; dmarc=pass (p=REJECT)", True),
-        ("mx.google.com; spf=fail; dmarc=fail (p=NONE)", False),
+        ("mx.google.com; spf=pass; dkim=pass; dmarc=pass (p=REJECT) header.from=acme.io", True),
+        ("mx.google.com; spf=fail; dmarc=fail (p=NONE) header.from=acme.io", False),
         ("mx.google.com; spf=pass", None),
+        # A pass for another domain than the From address is a spoof, not an unknown.
+        ("mx.google.com; dmarc=pass header.from=evil.io", False),
+        # Only a trusted receiving server's pass counts; anyone can add this header to mail.
+        ("mail.evil.io; dmarc=pass header.from=acme.io", None),
+        # "dmarc=pass" inside a comment or another field is not the verdict.
+        ("mx.google.com; spf=pass (dmarc=pass header.from=acme.io) smtp.mailfrom=x@evil.io", None),
+        ("mx.google.com; dmarc=fail (dmarc=pass) header.from=acme.io", False),
+        ("mx.google.com; dmarc=pass header.from=acme.io; dmarc=pass header.from=acme.io", None),
     ],
 )
 def test_email_verification_reads_the_dmarc_result(value: str, expected: bool | None) -> None:
-    assert sender_verified([{"name": "Authentication-Results", "value": value}]) is expected
+    sender = {"name": "From", "value": "Maya Rao <Maya@Acme.io>"}
+    assert sender_verified([{"name": "Authentication-Results", "value": value}, sender]) is expected
     assert sender_verified([]) is None
+
+
+def test_a_from_header_with_several_addresses_has_no_identity() -> None:
+    passed = {
+        "name": "Authentication-Results",
+        "value": "mx.google.com; dmarc=pass header.from=acme.io",
+    }
+    several = {"name": "From", "value": "maya@acme.io, mallory@evil.io"}
+    assert from_address([several]) is None and sender_verified([passed, several]) is None
+    assert from_address([{"name": "From", "value": "Maya <Maya@Acme.io>"}]) == "maya@acme.io"
